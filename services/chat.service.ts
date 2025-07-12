@@ -78,75 +78,19 @@ export class ChatService {
         }
     }
 
-    async sendBetMessage(matchId: number, userId: string, username: string, betType: string, betSubType: string, amount: number, odds: number): Promise<ServiceResult<BetMessage>> {
+    async sendBetMessage(matchId: number, userId: string, username: string, betType: 'home_win' | 'draw' | 'away_win', amount: number, odds: number): Promise<ServiceResult<BetMessage>> {
         try {
-            console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${betSubType} - ${amount}€ @ ${odds}`);
-            
-            let betDescription = '';
-            
-            switch (betType) {
-                case 'match_winner':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile' : betSubType === 'draw' ? 'match nul' : 'victoire extérieur'} @ ${odds}`;
-                    break;
-                case 'over_under':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('over') ? 'plus de' : 'moins de'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} buts @ ${odds}`;
-                    break;
-                case 'both_teams_score':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'yes' ? 'les deux équipes marquent' : 'une équipe ne marque pas'} @ ${odds}`;
-                    break;
-                case 'double_chance':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home_or_draw' ? 'victoire domicile ou nul' : betSubType === 'home_or_away' ? 'victoire domicile ou extérieur' : 'nul ou victoire extérieur'} @ ${odds}`;
-                    break;
-                case 'draw_no_bet':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile (sans nul)' : 'victoire extérieur (sans nul)'} @ ${odds}`;
-                    break;
-                case 'first_half_winner':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile mi-temps' : betSubType === 'draw' ? 'nul mi-temps' : 'victoire extérieur mi-temps'} @ ${odds}`;
-                    break;
-                case 'first_half_goals':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('over') ? 'plus de' : 'moins de'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} buts mi-temps @ ${odds}`;
-                    break;
-                case 'ht_ft':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} @ ${odds}`;
-                    break;
-                case 'correct_score':
-                    betDescription = `${username} a parié ${amount}€ sur le score exact ${betSubType} @ ${odds}`;
-                    break;
-                case 'exact_goals_number':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} buts exacts @ ${odds}`;
-                    break;
-                case 'goalscorers':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} premier buteur @ ${odds}`;
-                    break;
-                case 'clean_sheet':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('home') ? 'domicile' : 'extérieur'} ${betSubType.includes('yes') ? 'garde sa cage inviolée' : 'ne garde pas sa cage inviolée'} @ ${odds}`;
-                    break;
-                case 'win_to_nil':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('home') ? 'domicile' : 'extérieur'} ${betSubType.includes('yes') ? 'gagne sans encaisser' : 'ne gagne pas sans encaisser'} @ ${odds}`;
-                    break;
-                case 'highest_scoring_half':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'first_half' ? 'première mi-temps' : betSubType === 'second_half' ? 'deuxième mi-temps' : 'mi-temps égales'} @ ${odds}`;
-                    break;
-                case 'odd_even_goals':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'odd' ? 'nombre impair' : 'nombre pair'} de buts @ ${odds}`;
-                    break;
-                case 'first_half_odd_even':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'odd' ? 'nombre impair' : 'nombre pair'} de buts mi-temps @ ${odds}`;
-                    break;
-                default:
-                    betDescription = `${username} a parié ${amount}€ sur ${betType} - ${betSubType} @ ${odds}`;
-            }
+            console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${amount}€ @ ${odds}`);
             
             const betMessage: BetMessage = {
                 id: this.generateMessageId(),
                 matchId,
                 userId,
                 username,
-                message: betDescription,
+                message: `${username} a parié ${amount}€ sur ${betType === 'home_win' ? 'victoire domicile' : betType === 'draw' ? 'match nul' : 'victoire extérieur'} @ ${odds}`,
                 timestamp: Date.now(),
                 type: 'bet',
                 betType: betType as any,
-                betSubType,
                 amount,
                 odds
             };
@@ -292,11 +236,13 @@ export class ChatService {
 
     getStats(): { 
         connectedUsers: number; 
-        activeRooms: number;
+        activeRooms: number; 
+        totalMessages: number;
     } {
         return {
             connectedUsers: this.connectedUsers.size,
-            activeRooms: this.chatRooms.size
+            activeRooms: this.chatRooms.size,
+            totalMessages: 0
         };
     }
 } 

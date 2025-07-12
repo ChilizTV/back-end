@@ -23,6 +23,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.19.2",
+    "gun": "^0.2020.1241",
     "mysql2": "^3.11.3",
     "node-cron": "^3.0.3",
     "sequelize": "latest",

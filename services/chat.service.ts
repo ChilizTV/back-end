@@ -111,7 +111,8 @@ export class ChatService {
         try {
             console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${betSubType} - ${amount}€ @ ${odds}`);
             
-            const isFeatured = await this.checkUserFeaturedStatus(walletAddress);
+            // Force all bet messages to be featured
+            const isFeatured = true;
             
             let betDescription = '';
             

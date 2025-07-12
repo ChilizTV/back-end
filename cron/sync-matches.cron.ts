@@ -12,13 +12,13 @@ async function syncMatches() {
         
         const result = await matchService.refetchMatchesFromApi();
         
-        // Gestion dynamique des rooms de chat
+        // Dynamic chat room management
         const cacheStats = matchService.getCacheStats();
         const matches = matchService['matchesCache'] || [];
         const now = new Date();
         const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-        // Créer une room pour chaque match à venir, en cours, ou terminé depuis moins de 24h
+        // Create a room for each upcoming, live, or finished match within the last 24h
         matches.forEach(match => {
             const matchDate = new Date(match.match_date);
             const isFutureOrLive = matchDate >= past24h && matchDate <= now || match.status === 'scheduled' || match.status === 'live';
@@ -27,12 +27,12 @@ async function syncMatches() {
             }
         });
 
-        // Supprimer les rooms des matchs terminés depuis 24h ou plus
-        // On considère tous les matchs du cache + on peut garder une trace des rooms existantes
+        // Remove rooms for matches finished more than 24h ago
+        // We consider all matches in cache + we can keep track of existing rooms
         chatService['chatRooms'].forEach((_, matchId) => {
             const match = matches.find(m => m.id === matchId);
             if (!match) {
-                // Si le match n'est plus dans le cache, on supprime la room
+                // If the match is no longer in cache, we delete the room
                 chatService.deleteRoom(matchId);
                 return;
             }

@@ -58,13 +58,11 @@ export class ChatService {
 
     private async checkUserFeaturedStatus(walletAddress: string): Promise<boolean> {
         try {
-            const result = await this.tokenBalanceService.isUserFeatured(walletAddress);
-            if (result.errorCode === 0) {
-                return result.result!;
-            }
-            return false;
+            const balances = await this.tokenBalanceService.getUserTokenBalances(walletAddress);
+            const totalBalance = Object.values(balances).reduce((sum: number, balance: any) => sum + (balance || 0), 0);
+            return totalBalance >= 50;
         } catch (error) {
-            console.error('❌ Error checking featured status:', error);
+            console.error('❌ Error checking user featured status:', error);
             return false;
         }
     }
@@ -118,55 +116,55 @@ export class ChatService {
             
             switch (betType) {
                 case 'match_winner':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile' : betSubType === 'draw' ? 'match nul' : 'victoire extérieur'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home' ? 'home win' : betSubType === 'draw' ? 'draw' : 'away win'} @ ${odds}`;
                     break;
                 case 'over_under':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('over') ? 'plus de' : 'moins de'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} buts @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('over') ? 'over' : 'under'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} goals @ ${odds}`;
                     break;
                 case 'both_teams_score':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'yes' ? 'les deux équipes marquent' : 'une équipe ne marque pas'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'yes' ? 'both teams score' : 'one team does not score'} @ ${odds}`;
                     break;
                 case 'double_chance':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home_or_draw' ? 'victoire domicile ou nul' : betSubType === 'home_or_away' ? 'victoire domicile ou extérieur' : 'nul ou victoire extérieur'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home_or_draw' ? 'home win or draw' : betSubType === 'home_or_away' ? 'home win or away win' : 'draw or away win'} @ ${odds}`;
                     break;
                 case 'draw_no_bet':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile (sans nul)' : 'victoire extérieur (sans nul)'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home' ? 'home win (no draw)' : 'away win (no draw)'} @ ${odds}`;
                     break;
                 case 'first_half_winner':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile mi-temps' : betSubType === 'draw' ? 'nul mi-temps' : 'victoire extérieur mi-temps'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home' ? 'home win first half' : betSubType === 'draw' ? 'draw first half' : 'away win first half'} @ ${odds}`;
                     break;
                 case 'first_half_goals':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('over') ? 'plus de' : 'moins de'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} buts mi-temps @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('over') ? 'over' : 'under'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} goals first half @ ${odds}`;
                     break;
                 case 'ht_ft':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType} @ ${odds}`;
                     break;
                 case 'correct_score':
-                    betDescription = `${username} a parié ${amount}€ sur le score exact ${betSubType} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on exact score ${betSubType} @ ${odds}`;
                     break;
                 case 'exact_goals_number':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} buts exacts @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on exactly ${betSubType} goals @ ${odds}`;
                     break;
                 case 'goalscorers':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} premier buteur @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType} first goalscorer @ ${odds}`;
                     break;
                 case 'clean_sheet':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('home') ? 'domicile' : 'extérieur'} ${betSubType.includes('yes') ? 'garde sa cage inviolée' : 'ne garde pas sa cage inviolée'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('home') ? 'home' : 'away'} ${betSubType.includes('yes') ? 'keeps clean sheet' : 'does not keep clean sheet'} @ ${odds}`;
                     break;
                 case 'win_to_nil':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('home') ? 'domicile' : 'extérieur'} ${betSubType.includes('yes') ? 'gagne sans encaisser' : 'ne gagne pas sans encaisser'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('home') ? 'home' : 'away'} ${betSubType.includes('yes') ? 'wins without conceding' : 'does not win without conceding'} @ ${odds}`;
                     break;
                 case 'highest_scoring_half':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'first_half' ? 'première mi-temps' : betSubType === 'second_half' ? 'deuxième mi-temps' : 'mi-temps égales'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'first_half' ? 'first half' : betSubType === 'second_half' ? 'second half' : 'equal halves'} @ ${odds}`;
                     break;
                 case 'odd_even_goals':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'odd' ? 'nombre impair' : 'nombre pair'} de buts @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'odd' ? 'odd' : 'even'} number of goals @ ${odds}`;
                     break;
                 case 'first_half_odd_even':
-                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'odd' ? 'nombre impair' : 'nombre pair'} de buts mi-temps @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'odd' ? 'odd' : 'even'} number of goals first half @ ${odds}`;
                     break;
                 default:
-                    betDescription = `${username} a parié ${amount}€ sur ${betType} - ${betSubType} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}€ on ${betType} - ${betSubType} @ ${odds}`;
             }
             
             const betMessage: BetMessage = {
@@ -205,19 +203,19 @@ export class ChatService {
             let message = '';
             switch (systemType) {
                 case 'match_start':
-                    message = '⚽ Le match commence !';
+                    message = '⚽ Match is starting!';
                     break;
                 case 'match_end':
-                    message = '🏁 Le match est terminé !';
+                    message = '🏁 Match is finished!';
                     break;
                 case 'goal':
                     message = `⚽ GOAL! ${data?.team} - ${data?.score}`;
                     break;
                 case 'user_joined':
-                    message = `👋 ${data?.username} a rejoint le chat`;
+                    message = `👋 ${data?.username} joined the chat`;
                     break;
                 case 'user_left':
-                    message = `👋 ${data?.username} a quitté le chat`;
+                    message = `👋 ${data?.username} left the chat`;
                     break;
             }
 
@@ -248,32 +246,34 @@ export class ChatService {
         }
     }
 
-    async joinRoom(matchId: number, userId: string, username: string): Promise<ServiceResult<void>> {
+    async joinRoom(matchId: number, userId: string, username: string): Promise<ServiceResult<unknown>> {
         try {
-            console.log(`👤 User ${username} joining match ${matchId}`);
+            console.log(`👋 User ${username} joining match ${matchId}`);
             
             this.connectedUsers.set(userId, { matchId, username });
             
+            // Send system message
             await this.sendSystemMessage(matchId, 'user_joined', { username });
             
             console.log(`✅ User ${username} joined match ${matchId}`);
-            return ServiceResult.success(undefined);
+            return ServiceResult.success({ userId, username, matchId });
         } catch (error) {
             console.error('❌ Error joining room:', error);
             return ServiceResult.failed();
         }
     }
 
-    async leaveRoom(matchId: number, userId: string, username: string): Promise<ServiceResult<void>> {
+    async leaveRoom(matchId: number, userId: string, username: string): Promise<ServiceResult<unknown>> {
         try {
-            console.log(`👤 User ${username} leaving match ${matchId}`);
+            console.log(`👋 User ${username} leaving match ${matchId}`);
             
             this.connectedUsers.delete(userId);
             
+            // Send system message
             await this.sendSystemMessage(matchId, 'user_left', { username });
             
             console.log(`✅ User ${username} left match ${matchId}`);
-            return ServiceResult.success(undefined);
+            return ServiceResult.success({ userId, username, matchId });
         } catch (error) {
             console.error('❌ Error leaving room:', error);
             return ServiceResult.failed();
@@ -324,11 +324,13 @@ export class ChatService {
 
     async getConnectedUsers(matchId: number): Promise<ServiceResult<string[]>> {
         try {
+            console.log(`👥 Getting connected users for match ${matchId}`);
+            
             const users = Array.from(this.connectedUsers.values())
                 .filter(user => user.matchId === matchId)
                 .map(user => user.username);
             
-            console.log(`👥 Connected users for match ${matchId}: ${users.join(', ')}`);
+            console.log(`✅ Found ${users.length} connected users for match ${matchId}`);
             return ServiceResult.success(users);
         } catch (error) {
             console.error('❌ Error getting connected users:', error);
@@ -336,13 +338,23 @@ export class ChatService {
         }
     }
 
-    async getUserTokenBalances(walletAddress: string): Promise<ServiceResult<any>> {
+    async getUserTokenBalances(walletAddress: string): Promise<{ [key: string]: number }> {
         try {
+            console.log(`💰 Getting token balances for wallet ${walletAddress}`);
             const result = await this.tokenBalanceService.getUserTokenBalances(walletAddress);
-            return result;
+            
+            if (result.errorCode === 0 && result.result) {
+                const balances: { [key: string]: number } = {};
+                result.result.tokenBalances.forEach(tokenBalance => {
+                    balances[tokenBalance.token.symbol] = tokenBalance.balance;
+                });
+                return balances;
+            }
+            
+            return {};
         } catch (error) {
             console.error('❌ Error getting user token balances:', error);
-            return ServiceResult.failed();
+            return {};
         }
     }
 

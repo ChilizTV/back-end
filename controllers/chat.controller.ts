@@ -115,15 +115,22 @@ export class ChatController {
     private async sendBetMessage(req: Request, res: Response): Promise<void> {
         try {
             const { matchId } = req.params;
-            const { userId, username, betType, amount, odds } = req.body;
+            const { userId, username, betType, betSubType, amount, odds } = req.body;
 
-            if (!userId || !username || !betType || !amount || !odds) {
-                res.status(400).json({ error: 'userId, username, betType, amount and odds are required' });
+            if (!userId || !username || !betType || !betSubType || !amount || !odds) {
+                res.status(400).json({ error: 'userId, username, betType, betSubType, amount and odds are required' });
                 return;
             }
 
-            if (!['home_win', 'draw', 'away_win'].includes(betType)) {
-                res.status(400).json({ error: 'betType must be home_win, draw, or away_win' });
+            const validBetTypes = [
+                'match_winner', 'over_under', 'both_teams_score', 'double_chance', 
+                'draw_no_bet', 'first_half_winner', 'first_half_goals', 'ht_ft', 
+                'correct_score', 'exact_goals_number', 'goalscorers', 'clean_sheet', 
+                'win_to_nil', 'highest_scoring_half', 'odd_even_goals', 'first_half_odd_even'
+            ];
+
+            if (!validBetTypes.includes(betType)) {
+                res.status(400).json({ error: 'betType must be one of the valid types' });
                 return;
             }
 
@@ -132,6 +139,7 @@ export class ChatController {
                 userId, 
                 username, 
                 betType, 
+                betSubType, 
                 parseFloat(amount), 
                 parseFloat(odds)
             );

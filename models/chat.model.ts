@@ -17,7 +17,8 @@ export interface ChatRoom {
 
 export interface BetMessage extends ChatMessage {
     type: 'bet';
-    betType: 'home_win' | 'draw' | 'away_win';
+    betType: 'match_winner' | 'over_under' | 'both_teams_score' | 'double_chance' | 'draw_no_bet' | 'first_half_winner' | 'first_half_goals' | 'ht_ft' | 'correct_score' | 'exact_goals_number' | 'goalscorers' | 'clean_sheet' | 'win_to_nil' | 'highest_scoring_half' | 'odd_even_goals' | 'first_half_odd_even';
+    betSubType?: string; // Pour les sous-types comme "home", "over_2_5", etc.
     amount: number;
     odds: number;
 }

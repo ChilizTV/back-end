@@ -58,9 +58,27 @@ export class ChatService {
 
     private async checkUserFeaturedStatus(walletAddress: string): Promise<boolean> {
         try {
-            const balances = await this.tokenBalanceService.getUserTokenBalances(walletAddress);
-            const totalBalance = Object.values(balances).reduce((sum: number, balance: any) => sum + (balance || 0), 0);
-            return totalBalance >= 50;
+            console.log(`🔍 Checking featured status for wallet: ${walletAddress}`);
+            
+            const result = await this.tokenBalanceService.getUserTokenBalances(walletAddress);
+            
+            if (result.errorCode === 0 && result.result) {
+                const userBalance = result.result as {
+                    walletAddress: string;
+                    totalBalance: number;
+                    tokenBalances: Array<{
+                        token: { symbol: string };
+                        balance: number;
+                    }>;
+                    isFeatured: boolean;
+                };
+                
+                console.log(`💰 User balance: ${userBalance.totalBalance} tokens, Featured: ${userBalance.isFeatured}`);
+                return userBalance.isFeatured;
+            } else {
+                console.log(`❌ Failed to get token balances for wallet: ${walletAddress}`);
+                return false;
+            }
         } catch (error) {
             console.error('❌ Error checking user featured status:', error);
             return false;
@@ -88,14 +106,12 @@ export class ChatService {
             const room = this.getChatRoom(matchId);
             const messages = room.get('messages');
             
-            // Use a more controlled approach to avoid infinite loops
             try {
                 messages.get(chatMessage.id).put(chatMessage);
                 console.log(`✅ Message sent to match ${matchId}: ${message.substring(0, 50)}... (Featured: ${isFeatured})`);
                 return ServiceResult.success(chatMessage);
             } catch (gunError) {
                 console.error('❌ Gun.js error:', gunError);
-                // Fallback: return the message even if Gun.js fails
                 console.log(`⚠️ Gun.js failed, but message created: ${message.substring(0, 50)}...`);
                 return ServiceResult.success(chatMessage);
             }
@@ -109,7 +125,6 @@ export class ChatService {
         try {
             console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${betSubType} - ${amount}$ @ ${odds}`);
             
-            // Force all bet messages to be featured
             const isFeatured = true;
             
             let betDescription = '';

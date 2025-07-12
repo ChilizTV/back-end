@@ -1,1 +1,1 @@
-export * from './match.model'
+export * from './ApiFootball.model'

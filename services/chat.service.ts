@@ -2,11 +2,13 @@ import Gun from 'gun';
 import { ServiceResult } from './service.result';
 import { ChatMessage, ChatRoom, BetMessage, SystemMessage } from '../models/chat.model';
 import { MatchWithOdds } from '../models';
+import { TokenBalanceService } from './token-balance.service';
 
 export class ChatService {
     private gun: any;
     private chatRooms: Map<number, any> = new Map();
     private connectedUsers: Map<string, { matchId: number; username: string }> = new Map();
+    private tokenBalanceService: TokenBalanceService;
 
     constructor() {
         this.gun = Gun({
@@ -14,7 +16,9 @@ export class ChatService {
             multicast: false
         });
 
-        console.log('🚀 Chat service initialized with Gun.js');
+        this.tokenBalanceService = new TokenBalanceService();
+
+        console.log('🚀 Chat service initialized with Gun.js and Token Balance Service');
     }
 
     public createRoomIfNotExists(matchId: number): void {
@@ -51,18 +55,35 @@ export class ChatService {
         return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    async sendMessage(matchId: number, userId: string, username: string, message: string): Promise<ServiceResult<ChatMessage>> {
+    private async checkUserFeaturedStatus(walletAddress: string): Promise<boolean> {
+        try {
+            const result = await this.tokenBalanceService.isUserFeatured(walletAddress);
+            if (result.errorCode === 0) {
+                return result.result!;
+            }
+            return false;
+        } catch (error) {
+            console.error('❌ Error checking featured status:', error);
+            return false;
+        }
+    }
+
+    async sendMessage(matchId: number, userId: string, username: string, message: string, walletAddress: string): Promise<ServiceResult<ChatMessage>> {
         try {
             console.log(`💬 User ${username} sending message to match ${matchId}`);
+            
+            const isFeatured = await this.checkUserFeaturedStatus(walletAddress);
             
             const chatMessage: ChatMessage = {
                 id: this.generateMessageId(),
                 matchId,
                 userId,
+                walletAddress,
                 username,
                 message,
                 timestamp: Date.now(),
-                type: 'message'
+                type: 'message',
+                isFeatured
             };
 
             const room = this.getChatRoom(matchId);
@@ -70,7 +91,7 @@ export class ChatService {
             
             messages.get(chatMessage.id).put(chatMessage);
 
-            console.log(`✅ Message sent to match ${matchId}: ${message.substring(0, 50)}...`);
+            console.log(`✅ Message sent to match ${matchId}: ${message.substring(0, 50)}... (Featured: ${isFeatured})`);
             return ServiceResult.success(chatMessage);
         } catch (error) {
             console.error('❌ Error sending message:', error);
@@ -78,21 +99,81 @@ export class ChatService {
         }
     }
 
-    async sendBetMessage(matchId: number, userId: string, username: string, betType: 'home_win' | 'draw' | 'away_win', amount: number, odds: number): Promise<ServiceResult<BetMessage>> {
+    async sendBetMessage(matchId: number, userId: string, username: string, betType: string, betSubType: string, amount: number, odds: number, walletAddress: string): Promise<ServiceResult<BetMessage>> {
         try {
-            console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${amount}€ @ ${odds}`);
+            console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${betSubType} - ${amount}€ @ ${odds}`);
+            
+            const isFeatured = await this.checkUserFeaturedStatus(walletAddress);
+            
+            let betDescription = '';
+            
+            switch (betType) {
+                case 'match_winner':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile' : betSubType === 'draw' ? 'match nul' : 'victoire extérieur'} @ ${odds}`;
+                    break;
+                case 'over_under':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('over') ? 'plus de' : 'moins de'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} buts @ ${odds}`;
+                    break;
+                case 'both_teams_score':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'yes' ? 'les deux équipes marquent' : 'une équipe ne marque pas'} @ ${odds}`;
+                    break;
+                case 'double_chance':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home_or_draw' ? 'victoire domicile ou nul' : betSubType === 'home_or_away' ? 'victoire domicile ou extérieur' : 'nul ou victoire extérieur'} @ ${odds}`;
+                    break;
+                case 'draw_no_bet':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile (sans nul)' : 'victoire extérieur (sans nul)'} @ ${odds}`;
+                    break;
+                case 'first_half_winner':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'home' ? 'victoire domicile mi-temps' : betSubType === 'draw' ? 'nul mi-temps' : 'victoire extérieur mi-temps'} @ ${odds}`;
+                    break;
+                case 'first_half_goals':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('over') ? 'plus de' : 'moins de'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} buts mi-temps @ ${odds}`;
+                    break;
+                case 'ht_ft':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} @ ${odds}`;
+                    break;
+                case 'correct_score':
+                    betDescription = `${username} a parié ${amount}€ sur le score exact ${betSubType} @ ${odds}`;
+                    break;
+                case 'exact_goals_number':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} buts exacts @ ${odds}`;
+                    break;
+                case 'goalscorers':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType} premier buteur @ ${odds}`;
+                    break;
+                case 'clean_sheet':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('home') ? 'domicile' : 'extérieur'} ${betSubType.includes('yes') ? 'garde sa cage inviolée' : 'ne garde pas sa cage inviolée'} @ ${odds}`;
+                    break;
+                case 'win_to_nil':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType.includes('home') ? 'domicile' : 'extérieur'} ${betSubType.includes('yes') ? 'gagne sans encaisser' : 'ne gagne pas sans encaisser'} @ ${odds}`;
+                    break;
+                case 'highest_scoring_half':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'first_half' ? 'première mi-temps' : betSubType === 'second_half' ? 'deuxième mi-temps' : 'mi-temps égales'} @ ${odds}`;
+                    break;
+                case 'odd_even_goals':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'odd' ? 'nombre impair' : 'nombre pair'} de buts @ ${odds}`;
+                    break;
+                case 'first_half_odd_even':
+                    betDescription = `${username} a parié ${amount}€ sur ${betSubType === 'odd' ? 'nombre impair' : 'nombre pair'} de buts mi-temps @ ${odds}`;
+                    break;
+                default:
+                    betDescription = `${username} a parié ${amount}€ sur ${betType} - ${betSubType} @ ${odds}`;
+            }
             
             const betMessage: BetMessage = {
                 id: this.generateMessageId(),
                 matchId,
                 userId,
+                walletAddress,
                 username,
-                message: `${username} a parié ${amount}€ sur ${betType === 'home_win' ? 'victoire domicile' : betType === 'draw' ? 'match nul' : 'victoire extérieur'} @ ${odds}`,
+                message: betDescription,
                 timestamp: Date.now(),
                 type: 'bet',
                 betType: betType as any,
+                betSubType,
                 amount,
-                odds
+                odds,
+                isFeatured
             };
 
             const room = this.getChatRoom(matchId);
@@ -100,7 +181,7 @@ export class ChatService {
             
             messages.get(betMessage.id).put(betMessage);
 
-            console.log(`✅ Bet message sent to match ${matchId}`);
+            console.log(`✅ Bet message sent to match ${matchId} (Featured: ${isFeatured})`);
             return ServiceResult.success(betMessage);
         } catch (error) {
             console.error('❌ Error sending bet message:', error);
@@ -135,12 +216,14 @@ export class ChatService {
                 id: this.generateMessageId(),
                 matchId,
                 userId: 'system',
+                walletAddress: 'system',
                 username: 'System',
                 message,
                 timestamp: Date.now(),
                 type: 'system',
                 systemType,
-                data
+                data,
+                isFeatured: false
             };
 
             const room = this.getChatRoom(matchId);
@@ -200,7 +283,7 @@ export class ChatService {
                 
                 messages.map().once((message: ChatMessage, key: string) => {
                     if (message && message.id) {
-                        console.log(`📨 Message from match ${matchId}: ${message.message.substring(0, 30)}...`);
+                        console.log(`📨 Message from match ${matchId}: ${message.message.substring(0, 30)}... (Featured: ${message.isFeatured})`);
                         messagesList.push(message);
                     }
                 });
@@ -230,19 +313,27 @@ export class ChatService {
         }
     }
 
+    async getUserTokenBalances(walletAddress: string): Promise<ServiceResult<any>> {
+        try {
+            const result = await this.tokenBalanceService.getUserTokenBalances(walletAddress);
+            return result;
+        } catch (error) {
+            console.error('❌ Error getting user token balances:', error);
+            return ServiceResult.failed();
+        }
+    }
+
     getGunInstance(): any {
         return this.gun;
     }
 
     getStats(): { 
         connectedUsers: number; 
-        activeRooms: number; 
-        totalMessages: number;
+        activeRooms: number;
     } {
         return {
             connectedUsers: this.connectedUsers.size,
-            activeRooms: this.chatRooms.size,
-            totalMessages: 0
+            activeRooms: this.chatRooms.size
         };
     }
 } 

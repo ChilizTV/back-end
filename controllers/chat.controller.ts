@@ -27,6 +27,8 @@ export class ChatController {
         
         this.router.get('/stats', this.getChatStats.bind(this));
         
+        this.router.get('/token-balances/:walletAddress', this.getUserTokenBalances.bind(this));
+        
         // WebSocket
         this.router.get('/gun', this.serveGun.bind(this));
     }
@@ -88,14 +90,14 @@ export class ChatController {
     private async sendMessage(req: Request, res: Response): Promise<void> {
         try {
             const { matchId } = req.params;
-            const { userId, username, message } = req.body;
+            const { userId, username, message, walletAddress } = req.body;
 
-            if (!userId || !username || !message) {
-                res.status(400).json({ error: 'userId, username and message are required' });
+            if (!userId || !username || !message || !walletAddress) {
+                res.status(400).json({ error: 'userId, username, message and walletAddress are required' });
                 return;
             }
 
-            const result = await this.chatService.sendMessage(parseInt(matchId), userId, username, message);
+            const result = await this.chatService.sendMessage(parseInt(matchId), userId, username, message, walletAddress);
             
             if (result.errorCode === ServiceErrorCode.success) {
                 res.json({ 
@@ -115,10 +117,10 @@ export class ChatController {
     private async sendBetMessage(req: Request, res: Response): Promise<void> {
         try {
             const { matchId } = req.params;
-            const { userId, username, betType, betSubType, amount, odds } = req.body;
+            const { userId, username, betType, betSubType, amount, odds, walletAddress } = req.body;
 
-            if (!userId || !username || !betType || !betSubType || !amount || !odds) {
-                res.status(400).json({ error: 'userId, username, betType, betSubType, amount and odds are required' });
+            if (!userId || !username || !betType || !betSubType || !amount || !odds || !walletAddress) {
+                res.status(400).json({ error: 'userId, username, betType, betSubType, amount, odds and walletAddress are required' });
                 return;
             }
 
@@ -141,7 +143,8 @@ export class ChatController {
                 betType, 
                 betSubType, 
                 parseFloat(amount), 
-                parseFloat(odds)
+                parseFloat(odds),
+                walletAddress
             );
             
             if (result.errorCode === ServiceErrorCode.success) {
@@ -208,6 +211,20 @@ export class ChatController {
             });
         } catch (error) {
             console.error('❌ Error in getChatStats:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    private async getUserTokenBalances(req: Request, res: Response): Promise<void> {
+        try {
+            const { walletAddress } = req.params;
+            const balances = await this.chatService.getUserTokenBalances(walletAddress);
+            res.json({
+                success: true,
+                balances
+            });
+        } catch (error) {
+            console.error('❌ Error in getUserTokenBalances:', error);
             res.status(500).json({ error: 'Internal server error' });
         }
     }

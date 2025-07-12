@@ -2,10 +2,12 @@ export interface ChatMessage {
     id: string;
     matchId: number;
     userId: string;
+    walletAddress: string;
     username: string;
     message: string;
     timestamp: number;
     type: 'message' | 'system' | 'bet';
+    isFeatured: boolean;
 }
 
 export interface ChatRoom {

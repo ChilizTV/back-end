@@ -287,25 +287,8 @@ server/
 └── README.md
 ```
 
-## 🤝 Contribution
-
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
-3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
-
 ## 📄 Licence
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
-## 🆘 Support
-
-Pour toute question ou problème :
-- Ouvrir une issue sur GitHub
-- Consulter les logs du serveur
-- Vérifier la configuration de l'API key
-
----
+Ce projet est sous licence AGPL-3.0. Voir le fichier `LICENSE` pour plus de détails.
 
 **Note** : Ce projet utilise l'API-FOOTBALL qui nécessite une clé API gratuite. Assurez-vous d'avoir une clé valide pour que le système fonctionne correctement. 

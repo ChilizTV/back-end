@@ -1,57 +1,57 @@
 # Football Matches API with Live Chat
 
-Un backend Node.js qui récupère les matchs de football avec leurs cotes depuis l'API-FOOTBALL et propose un système de chat en temps réel avec Gun.js.
+A Node.js backend that fetches football matches with their odds from the API-FOOTBALL and provides a real-time chat system with Gun.js.
 
-## 🚀 Fonctionnalités
+## 🚀 Features
 
-### Matchs de Football
-- ✅ Récupération des matchs depuis l'API-FOOTBALL
-- ✅ Filtrage par ligues spécifiques (IDs: 743, 15, 39, 61, 140, 2, 3, 78, 135)
-- ✅ Cotes réelles depuis l'API-FOOTBALL avec fallback aléatoire
-- ✅ Cache en mémoire avec rafraîchissement automatique
-- ✅ Filtrage temporel (48h centrées sur l'heure actuelle)
-- ✅ Job cron pour synchronisation toutes les 10 minutes
+### Football Matches
+- ✅ Fetching matches from API-FOOTBALL
+- ✅ Filtering by specific leagues (IDs: 743, 15, 39, 61, 140, 2, 3, 78, 135)
+- ✅ Real odds from API-FOOTBALL with random fallback
+- ✅ In-memory cache with automatic refresh
+- ✅ Temporal filtering (48h centered on current time)
+- ✅ Cron job for synchronization every 10 minutes
 
-### Chat en Temps Réel
-- ✅ Chat en temps réel avec Gun.js
-- ✅ Une room de chat par match
-- ✅ Messages système (rejoindre/quitter, début/fin de match)
-- ✅ Messages de paris avec cotes
-- ✅ WebSockets pour communication temps réel
+### Real-Time Chat
+- ✅ Real-time chat with Gun.js
+- ✅ One chat room per match
+- ✅ System messages (join/leave, match start/end)
+- ✅ Bet messages with odds
+- ✅ WebSockets for real-time communication
 
 ## 🛠️ Technologies
 
 - **Backend**: Node.js, Express, TypeScript
-- **Base de données**: In-memory cache (pas de DB)
-- **Temps réel**: Gun.js avec WebSockets
-- **API**: API-FOOTBALL pour les matchs et cotes
+- **Database**: In-memory cache (no DB)
+- **Real-time**: Gun.js with WebSockets
+- **API**: API-FOOTBALL for matches and odds
 
-## 📋 Prérequis
+## 📋 Prerequisites
 
 - Node.js (version 14+)
-- Clé API-FOOTBALL (gratuite sur [api-football.com](https://www.api-football.com/))
+- API-FOOTBALL key (free on [api-football.com](https://www.api-football.com/))
 
 ## ⚙️ Installation
 
-1. **Cloner le projet**
+1. **Clone the project**
 ```bash
 git clone <repository-url>
 cd server
 ```
 
-2. **Installer les dépendances**
+2. **Install dependencies**
 ```bash
 npm install
 ```
 
-3. **Configurer les variables d'environnement**
+3. **Configure environment variables**
 ```bash
-# Créer un fichier .env
-echo "API_FOOTBALL_KEY=votre_cle_api_football" > .env
+# Create a .env file
+echo "API_FOOTBALL_KEY=your_api_football_key" > .env
 echo "PORT=3000" >> .env
 ```
 
-4. **Compiler et démarrer**
+4. **Build and start**
 ```bash
 npm run build
 npm start
@@ -59,10 +59,10 @@ npm start
 
 ## 📡 API Endpoints
 
-### Matchs
+### Matches
 
 #### GET `/matches`
-Récupère tous les matchs disponibles
+Get all available matches
 ```json
 {
   "success": true,
@@ -85,7 +85,7 @@ Récupère tous les matchs disponibles
 ```
 
 #### GET `/matches/live`
-Récupère les matchs en cours
+Get live matches
 ```json
 {
   "success": true,
@@ -94,7 +94,7 @@ Récupère les matchs en cours
 ```
 
 #### GET `/matches/upcoming`
-Récupère les matchs à venir
+Get upcoming matches
 ```json
 {
   "success": true,
@@ -103,7 +103,7 @@ Récupère les matchs à venir
 ```
 
 #### GET `/matches/{id}`
-Récupère un match spécifique
+Get a specific match
 ```json
 {
   "success": true,
@@ -111,13 +111,13 @@ Récupère un match spécifique
     "id": 123456,
     "home_team": "Paris SG",
     "away_team": "Marseille",
-    // ... autres détails
+    // ... other details
   }
 }
 ```
 
 #### POST `/matches/sync`
-Déclenche une synchronisation manuelle
+Trigger manual synchronization
 ```json
 {
   "success": true,
@@ -128,7 +128,7 @@ Déclenche une synchronisation manuelle
 ### Chat
 
 #### POST `/chat/join/{matchId}`
-Rejoindre une room de chat
+Join a chat room
 ```json
 {
   "userId": "user_123",
@@ -137,7 +137,7 @@ Rejoindre une room de chat
 ```
 
 #### POST `/chat/leave/{matchId}`
-Quitter une room de chat
+Leave a chat room
 ```json
 {
   "userId": "user_123",
@@ -146,7 +146,7 @@ Quitter une room de chat
 ```
 
 #### POST `/chat/message/{matchId}`
-Envoyer un message
+Send a message
 ```json
 {
   "userId": "user_123",
@@ -156,7 +156,7 @@ Envoyer un message
 ```
 
 #### POST `/chat/bet/{matchId}`
-Placer un pari
+Place a bet
 ```json
 {
   "userId": "user_123",
@@ -168,7 +168,7 @@ Placer un pari
 ```
 
 #### GET `/chat/messages/{matchId}`
-Récupérer les messages d'une room
+Get messages from a room
 ```json
 {
   "success": true,
@@ -187,7 +187,7 @@ Récupérer les messages d'une room
 ```
 
 #### GET `/chat/users/{matchId}`
-Récupérer les utilisateurs connectés
+Get connected users
 ```json
 {
   "success": true,
@@ -196,7 +196,7 @@ Récupérer les utilisateurs connectés
 ```
 
 #### GET `/chat/stats`
-Statistiques du chat
+Chat statistics
 ```json
 {
   "success": true,
@@ -209,65 +209,65 @@ Statistiques du chat
 
 ## 🔧 Configuration
 
-### Variables d'environnement
+### Environment Variables
 
-| Variable | Description | Défaut |
+| Variable | Description | Default |
 |----------|-------------|---------|
-| `API_FOOTBALL_KEY` | Clé API-FOOTBALL | Requis |
-| `PORT` | Port du serveur | 3000 |
+| `API_FOOTBALL_KEY` | API-FOOTBALL key | Required |
+| `PORT` | Server port | 3000 |
 
-### Ligues autorisées
+### Allowed Leagues
 
-Les matchs sont filtrés pour inclure uniquement ces ligues :
+Matches are filtered to include only these leagues:
 - 743: Ligue 1 (France)
-- 15: Premier League (Angleterre)
-- 39: La Liga (Espagne)
-- 61: Serie A (Italie)
+- 15: Premier League (England)
+- 39: La Liga (Spain)
+- 61: Serie A (Italy)
 - 140: Primeira Liga (Portugal)
 - 2: UEFA Champions League
 - 3: UEFA Europa League
-- 78: Bundesliga (Allemagne)
-- 135: Eredivisie (Pays-Bas)
+- 78: Bundesliga (Germany)
+- 135: Eredivisie (Netherlands)
 
-## 🔄 Synchronisation
+## 🔄 Synchronization
 
-- **Automatique** : Toutes les 10 minutes via cron job
-- **Manuelle** : POST `/matches/sync`
-- **Cache** : 15 minutes de validité
+- **Automatic**: Every 10 minutes via cron job
+- **Manual**: POST `/matches/sync`
+- **Cache**: 15 minutes validity
 
 ## 📊 Logs
 
-Le système génère des logs détaillés :
-- 🔄 Synchronisation des matchs
-- 💰 Récupération des cotes (réelles ou aléatoires)
-- 💬 Messages de chat
-- 👥 Connexions/déconnexions utilisateurs
-- ⚠️ Erreurs et avertissements
+The system generates detailed logs:
+- 🔄 Match synchronization
+- 💰 Odds fetching (real or random)
+- 💬 Chat messages
+- 👥 User connections/disconnections
+- ⚠️ Errors and warnings
 
-## 🚀 Démarrage rapide
+## 🚀 Quick Start
 
 ```bash
-# 1. Installer les dépendances
+# 1. Install dependencies
 npm install
 
-# 2. Configurer l'API key
-echo "API_FOOTBALL_KEY=votre_cle" > .env
+# 2. Configure API key
+echo "API_FOOTBALL_KEY=your_key" > .env
 
-# 3. Démarrer le serveur
+# 3. Start server
 npm start
 
-# 4. Tester l'API
+# 4. Test API
 curl http://localhost:3000
 ```
 
 ## 🔍 Debug
 
-Pour voir les logs détaillés :
+To see detailed logs:
 ```bash
 npm start 2>&1 | tee server.log
 ```
 
-## 📝 Structure du projet
+## 📝 Project Structure
 
 ```
 server/
@@ -287,8 +287,8 @@ server/
 └── README.md
 ```
 
-## 📄 Licence
+## 📄 License
 
-Ce projet est sous licence AGPL-3.0. Voir le fichier `LICENSE` pour plus de détails.
+This project is licensed under AGPL-3.0. See the `LICENSE` file for more details.
 
-**Note** : Ce projet utilise l'API-FOOTBALL qui nécessite une clé API gratuite. Assurez-vous d'avoir une clé valide pour que le système fonctionne correctement. 
+**Note**: This project uses the API-FOOTBALL which requires a free API key. Make sure you have a valid key for the system to work properly. 

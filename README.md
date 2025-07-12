@@ -17,7 +17,6 @@ Un backend Node.js qui récupère les matchs de football avec leurs cotes depuis
 - ✅ Une room de chat par match
 - ✅ Messages système (rejoindre/quitter, début/fin de match)
 - ✅ Messages de paris avec cotes
-- ✅ Interface web moderne et responsive
 - ✅ WebSockets pour communication temps réel
 
 ## 🛠️ Technologies
@@ -26,7 +25,6 @@ Un backend Node.js qui récupère les matchs de football avec leurs cotes depuis
 - **Base de données**: In-memory cache (pas de DB)
 - **Temps réel**: Gun.js avec WebSockets
 - **API**: API-FOOTBALL pour les matchs et cotes
-- **Frontend**: HTML, CSS, JavaScript vanilla
 
 ## 📋 Prérequis
 
@@ -58,17 +56,6 @@ echo "PORT=3000" >> .env
 npm run build
 npm start
 ```
-
-## 🌐 Interface Web
-
-L'interface web est disponible à l'adresse : `http://localhost:3000`
-
-### Fonctionnalités de l'interface :
-- 📊 Affichage des matchs en temps réel
-- 💬 Chat en direct par match
-- 💰 Système de paris avec cotes
-- 👥 Gestion des utilisateurs connectés
-- 📱 Interface responsive
 
 ## 📡 API Endpoints
 
@@ -215,8 +202,7 @@ Statistiques du chat
   "success": true,
   "stats": {
     "connectedUsers": 5,
-    "activeRooms": 3,
-    "totalMessages": 150
+    "activeRooms": 3
   }
 }
 ```
@@ -270,8 +256,8 @@ echo "API_FOOTBALL_KEY=votre_cle" > .env
 # 3. Démarrer le serveur
 npm start
 
-# 4. Ouvrir l'interface
-open http://localhost:3000
+# 4. Tester l'API
+curl http://localhost:3000
 ```
 
 ## 🔍 Debug
@@ -297,8 +283,6 @@ server/
 │   └── chat.model.ts
 ├── cron/
 │   └── sync-matches.cron.ts
-├── public/
-│   └── index.html
 ├── index.ts
 └── README.md
 ```

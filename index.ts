@@ -2,7 +2,6 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from "cors";
 import http from 'http';
-import path from 'path';
 import Gun from 'gun';
 import { MatchController } from './controllers';
 import { ChatController } from './controllers/chat.controller';
@@ -14,6 +13,7 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
+// Configuration Gun.js
 const gun = Gun({
     web: server,
     multicast: false
@@ -22,9 +22,9 @@ const gun = Gun({
 app.use(bodyParser.json());
 app.use(cors());
 
-app.use(express.static(path.join(__dirname, 'public')));
-
+// Servir Gun.js pour le frontend
 app.use('/gun', (req, res, next) => {
+    // Gun.js gère ses propres routes
     next();
 });
 
@@ -34,6 +34,7 @@ const chatController = new ChatController();
 app.use('/matches', matchController.buildRoutes());
 app.use('/chat', chatController.getRouter());
 
+// Route pour vérifier que Gun.js fonctionne
 app.get('/gun-status', (req, res) => {
     res.json({ 
         success: true, 
@@ -43,8 +44,18 @@ app.get('/gun-status', (req, res) => {
     });
 });
 
+// Route par défaut pour l'API
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.json({ 
+        success: true, 
+        message: 'Football Chat API',
+        version: '1.0.0',
+        endpoints: {
+            matches: '/matches',
+            chat: '/chat',
+            gunStatus: '/gun-status'
+        }
+    });
 });
 
 server.listen(PORT, () => {
@@ -52,7 +63,7 @@ server.listen(PORT, () => {
     console.log(`🔗 Gun.js WebSocket server running on port ${PORT}`);
     console.log(`📡 Chat endpoints available at /chat`);
     console.log(`⚽ Match endpoints available at /matches`);
-    console.log(`🌐 Frontend available at http://localhost:${PORT}`);
+    console.log(`🌐 API available at http://localhost:${PORT}`);
     
     startMatchSyncCron();
 });

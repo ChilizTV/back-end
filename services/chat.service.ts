@@ -107,7 +107,7 @@ export class ChatService {
 
     async sendBetMessage(matchId: number, userId: string, username: string, betType: string, betSubType: string, amount: number, odds: number, walletAddress: string): Promise<ServiceResult<BetMessage>> {
         try {
-            console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${betSubType} - ${amount}€ @ ${odds}`);
+            console.log(`💰 User ${username} placing bet on match ${matchId}: ${betType} - ${betSubType} - ${amount}$ @ ${odds}`);
             
             // Force all bet messages to be featured
             const isFeatured = true;
@@ -116,55 +116,55 @@ export class ChatService {
             
             switch (betType) {
                 case 'match_winner':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home' ? 'home win' : betSubType === 'draw' ? 'draw' : 'away win'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'home' ? 'home win' : betSubType === 'draw' ? 'draw' : 'away win'} @ ${odds}`;
                     break;
                 case 'over_under':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('over') ? 'over' : 'under'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} goals @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType.includes('over') ? 'over' : 'under'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} goals @ ${odds}`;
                     break;
                 case 'both_teams_score':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'yes' ? 'both teams score' : 'one team does not score'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'yes' ? 'both teams score' : 'one team does not score'} @ ${odds}`;
                     break;
                 case 'double_chance':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home_or_draw' ? 'home win or draw' : betSubType === 'home_or_away' ? 'home win or away win' : 'draw or away win'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'home_or_draw' ? 'home win or draw' : betSubType === 'home_or_away' ? 'home win or away win' : 'draw or away win'} @ ${odds}`;
                     break;
                 case 'draw_no_bet':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home' ? 'home win (no draw)' : 'away win (no draw)'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'home' ? 'home win (no draw)' : 'away win (no draw)'} @ ${odds}`;
                     break;
                 case 'first_half_winner':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'home' ? 'home win first half' : betSubType === 'draw' ? 'draw first half' : 'away win first half'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'home' ? 'home win first half' : betSubType === 'draw' ? 'draw first half' : 'away win first half'} @ ${odds}`;
                     break;
                 case 'first_half_goals':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('over') ? 'over' : 'under'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} goals first half @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType.includes('over') ? 'over' : 'under'} ${betSubType.replace('over_', '').replace('under_', '').replace('_', '.')} goals first half @ ${odds}`;
                     break;
                 case 'ht_ft':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType} @ ${odds}`;
                     break;
                 case 'correct_score':
-                    betDescription = `${username} bet ${amount}€ on exact score ${betSubType} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on exact score ${betSubType} @ ${odds}`;
                     break;
                 case 'exact_goals_number':
-                    betDescription = `${username} bet ${amount}€ on exactly ${betSubType} goals @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on exactly ${betSubType} goals @ ${odds}`;
                     break;
                 case 'goalscorers':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType} first goalscorer @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType} first goalscorer @ ${odds}`;
                     break;
                 case 'clean_sheet':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('home') ? 'home' : 'away'} ${betSubType.includes('yes') ? 'keeps clean sheet' : 'does not keep clean sheet'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType.includes('home') ? 'home' : 'away'} ${betSubType.includes('yes') ? 'keeps clean sheet' : 'does not keep clean sheet'} @ ${odds}`;
                     break;
                 case 'win_to_nil':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType.includes('home') ? 'home' : 'away'} ${betSubType.includes('yes') ? 'wins without conceding' : 'does not win without conceding'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType.includes('home') ? 'home' : 'away'} ${betSubType.includes('yes') ? 'wins without conceding' : 'does not win without conceding'} @ ${odds}`;
                     break;
                 case 'highest_scoring_half':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'first_half' ? 'first half' : betSubType === 'second_half' ? 'second half' : 'equal halves'} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'first_half' ? 'first half' : betSubType === 'second_half' ? 'second half' : 'equal halves'} @ ${odds}`;
                     break;
                 case 'odd_even_goals':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'odd' ? 'odd' : 'even'} number of goals @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'odd' ? 'odd' : 'even'} number of goals @ ${odds}`;
                     break;
                 case 'first_half_odd_even':
-                    betDescription = `${username} bet ${amount}€ on ${betSubType === 'odd' ? 'odd' : 'even'} number of goals first half @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betSubType === 'odd' ? 'odd' : 'even'} number of goals first half @ ${odds}`;
                     break;
                 default:
-                    betDescription = `${username} bet ${amount}€ on ${betType} - ${betSubType} @ ${odds}`;
+                    betDescription = `${username} bet ${amount}$ on ${betType} - ${betSubType} @ ${odds}`;
             }
             
             const betMessage: BetMessage = {

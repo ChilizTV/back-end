@@ -13,7 +13,6 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// Configuration Gun.js
 const gun = Gun({
     web: server,
     multicast: false
@@ -22,9 +21,7 @@ const gun = Gun({
 app.use(bodyParser.json());
 app.use(cors());
 
-// Servir Gun.js pour le frontend
 app.use('/gun', (req, res, next) => {
-    // Gun.js gère ses propres routes
     next();
 });
 
@@ -34,7 +31,6 @@ const chatController = new ChatController();
 app.use('/matches', matchController.buildRoutes());
 app.use('/chat', chatController.getRouter());
 
-// Route pour vérifier que Gun.js fonctionne
 app.get('/gun-status', (req, res) => {
     res.json({ 
         success: true, 
@@ -44,7 +40,6 @@ app.get('/gun-status', (req, res) => {
     });
 });
 
-// Route par défaut pour l'API
 app.get('/', (req, res) => {
     res.json({ 
         success: true, 

@@ -12,27 +12,6 @@ export class ChatController {
         this.buildRoutes();
     }
 
-    private buildRoutes(): void {
-        this.router.post('/join/:matchId', this.joinRoom.bind(this));
-        
-        this.router.post('/leave/:matchId', this.leaveRoom.bind(this));
-        
-        this.router.post('/message/:matchId', this.sendMessage.bind(this));
-        
-        this.router.post('/bet/:matchId', this.sendBetMessage.bind(this));
-        
-        this.router.get('/messages/:matchId', this.getRoomMessages.bind(this));
-        
-        this.router.get('/users/:matchId', this.getConnectedUsers.bind(this));
-        
-        this.router.get('/stats', this.getChatStats.bind(this));
-        
-        this.router.get('/token-balances/:walletAddress', this.getUserTokenBalances.bind(this));
-        
-        // WebSocket
-        this.router.get('/gun', this.serveGun.bind(this));
-    }
-
     private async joinRoom(req: Request, res: Response): Promise<void> {
         try {
             const { matchId } = req.params;
@@ -92,8 +71,8 @@ export class ChatController {
             const { matchId } = req.params;
             const { userId, username, message, walletAddress } = req.body;
 
-            if (!userId || !username || !message || !walletAddress) {
-                res.status(400).json({ error: 'userId, username, message and walletAddress are required' });
+            if (!userId || !username || !message) {
+                res.status(400).json({ error: 'userId, username and message are required' });
                 return;
             }
 
@@ -215,20 +194,6 @@ export class ChatController {
         }
     }
 
-    private async getUserTokenBalances(req: Request, res: Response): Promise<void> {
-        try {
-            const { walletAddress } = req.params;
-            const balances = await this.chatService.getUserTokenBalances(walletAddress);
-            res.json({
-                success: true,
-                balances
-            });
-        } catch (error) {
-            console.error('❌ Error in getUserTokenBalances:', error);
-            res.status(500).json({ error: 'Internal server error' });
-        }
-    }
-
     private async serveGun(req: Request, res: Response): Promise<void> {
         try {
             const gun = this.chatService.getGunInstance();
@@ -245,5 +210,24 @@ export class ChatController {
 
     public getRouter(): Router {
         return this.router;
+    }
+
+    buildRoutes(): void {
+        this.router.post('/join/:matchId', this.joinRoom.bind(this));
+        
+        this.router.post('/leave/:matchId', this.leaveRoom.bind(this));
+        
+        this.router.post('/message/:matchId', this.sendMessage.bind(this));
+        
+        this.router.post('/bet/:matchId', this.sendBetMessage.bind(this));
+        
+        this.router.get('/messages/:matchId', this.getRoomMessages.bind(this));
+        
+        this.router.get('/users/:matchId', this.getConnectedUsers.bind(this));
+        
+        this.router.get('/stats', this.getChatStats.bind(this));
+        
+        // WebSocket
+        this.router.get('/gun', this.serveGun.bind(this));
     }
 } 

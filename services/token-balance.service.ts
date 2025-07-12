@@ -20,7 +20,7 @@ export interface UserTokenBalance {
 }
 
 export class TokenBalanceService {
-    private readonly CHILIZ_RPC_URL = 'https://testnet-rpc.chiliz.com';
+    private readonly CHILIZ_RPC_URL = 'https://spicy-rpc.chiliz.com';
     private readonly FEATURED_THRESHOLD = 50;
 
     private readonly SUPPORTED_TOKENS: ChilizToken[] = [

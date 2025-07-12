@@ -1,14 +1,17 @@
 import { Request, Response, Router } from 'express';
 import { ChatService } from '../services/chat.service';
+import { TokenBalanceService } from '../services/token-balance.service';
 import { ServiceErrorCode } from '../services/service.result';
 
 export class ChatController {
     private router: Router;
     private chatService: ChatService;
+    private tokenBalanceService: TokenBalanceService;
 
     constructor() {
         this.router = Router();
         this.chatService = new ChatService();
+        this.tokenBalanceService = new TokenBalanceService();
         this.buildRoutes();
     }
 
@@ -218,11 +221,16 @@ export class ChatController {
     private async getUserTokenBalances(req: Request, res: Response): Promise<void> {
         try {
             const { walletAddress } = req.params;
-            const balances = await this.chatService.getUserTokenBalances(walletAddress);
-            res.json({
-                success: true,
-                balances
-            });
+            const result = await this.tokenBalanceService.getUserTokenBalances(walletAddress);
+            
+            if (result.errorCode === ServiceErrorCode.success && result.result) {
+                res.json({
+                    success: true,
+                    balances: result.result
+                });
+            } else {
+                res.status(500).json({ error: 'Failed to get token balances' });
+            }
         } catch (error) {
             console.error('❌ Error in getUserTokenBalances:', error);
             res.status(500).json({ error: 'Internal server error' });

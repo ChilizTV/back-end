@@ -28,6 +28,7 @@
     "node-cron": "^3.0.3",
     "sequelize": "latest",
     "sequelize-typescript": "^2.1.6",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "viem": "^2.31.7"
   }
 }

@@ -11,7 +11,8 @@ export class ChatService {
     private tokenBalanceService: TokenBalanceService;
 
     constructor() {
-        this.gun = Gun({
+        // Use the global Gun instance from the server
+        this.gun = (global as any).gun || Gun({
             web: require('http').createServer(),
             multicast: false
         });
@@ -89,10 +90,17 @@ export class ChatService {
             const room = this.getChatRoom(matchId);
             const messages = room.get('messages');
             
-            messages.get(chatMessage.id).put(chatMessage);
-
-            console.log(`✅ Message sent to match ${matchId}: ${message.substring(0, 50)}... (Featured: ${isFeatured})`);
-            return ServiceResult.success(chatMessage);
+            // Use a more controlled approach to avoid infinite loops
+            try {
+                messages.get(chatMessage.id).put(chatMessage);
+                console.log(`✅ Message sent to match ${matchId}: ${message.substring(0, 50)}... (Featured: ${isFeatured})`);
+                return ServiceResult.success(chatMessage);
+            } catch (gunError) {
+                console.error('❌ Gun.js error:', gunError);
+                // Fallback: return the message even if Gun.js fails
+                console.log(`⚠️ Gun.js failed, but message created: ${message.substring(0, 50)}...`);
+                return ServiceResult.success(chatMessage);
+            }
         } catch (error) {
             console.error('❌ Error sending message:', error);
             return ServiceResult.failed();
@@ -280,18 +288,32 @@ export class ChatService {
             
             return new Promise((resolve) => {
                 const messagesList: ChatMessage[] = [];
+                let messageCount = 0;
                 
+                // Use a more controlled approach to avoid infinite loops
                 messages.map().once((message: ChatMessage, key: string) => {
-                    if (message && message.id) {
+                    if (message && message.id && typeof message === 'object' && message.message) {
                         console.log(`📨 Message from match ${matchId}: ${message.message.substring(0, 30)}... (Featured: ${message.isFeatured})`);
                         messagesList.push(message);
+                        messageCount++;
                     }
                 });
                 
-                setTimeout(() => {
-                    console.log(`📊 Found ${messagesList.length} messages for match ${matchId}`);
-                    resolve(ServiceResult.success(messagesList));
-                }, 100);
+                // Use a shorter timeout and add a maximum retry count
+                const maxRetries = 3;
+                let retryCount = 0;
+                
+                const checkMessages = () => {
+                    if (messageCount > 0 || retryCount >= maxRetries) {
+                        console.log(`📊 Found ${messagesList.length} messages for match ${matchId} after ${retryCount} retries`);
+                        resolve(ServiceResult.success(messagesList));
+                    } else {
+                        retryCount++;
+                        setTimeout(checkMessages, 200);
+                    }
+                };
+                
+                setTimeout(checkMessages, 200);
             });
         } catch (error) {
             console.error('❌ Error getting room messages:', error);

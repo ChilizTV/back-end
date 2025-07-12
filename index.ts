@@ -15,8 +15,13 @@ const PORT = process.env.PORT || 3000;
 
 const gun = Gun({
     web: server,
-    multicast: false
+    multicast: false,
+    localStorage: false, // Disable localStorage to prevent file system loops
+    axe: false // Disable axe to prevent network loops
 });
+
+// Make Gun instance global for ChatService to use
+(global as any).gun = gun;
 
 app.use(bodyParser.json());
 app.use(cors());

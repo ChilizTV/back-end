@@ -16,7 +16,7 @@ A Node.js backend that fetches football matches with their odds from the API-FOO
 - ✅ Real-time chat with Gun.js
 - ✅ One chat room per match
 - ✅ System messages (join/leave, match start/end)
-- ✅ Bet messages with odds
+- ✅ Messages with odds
 - ✅ WebSockets for real-time communication
 
 ## 🛠️ Technologies
@@ -155,13 +155,13 @@ Send a message
 }
 ```
 
-#### POST `/chat/bet/{matchId}`
-Place a bet
+#### POST `/chat/prediction/{matchId}`
+Place a prediction
 ```json
 {
   "userId": "user_123",
   "username": "JohnDoe",
-  "betType": "home_win",
+  "predictionType": "home_win",
   "amount": 50,
   "odds": 1.85
 }

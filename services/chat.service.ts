@@ -275,7 +275,7 @@ export class ChatService {
                 throw error;
             }
 
-            const messages = data.map(msg => this.mapToChatMessage(msg));
+            const messages = data.map((msg: any) => this.mapToChatMessage(msg));
             console.log(`📊 Found ${messages.length} messages for match ${matchId}`);
             
             return ServiceResult.success(messages);
@@ -299,7 +299,7 @@ export class ChatService {
                 throw error;
             }
 
-            const users = data.map(user => this.mapToConnectedUser(user));
+            const users = data.map((user: any) => this.mapToConnectedUser(user));
             console.log(`👥 Found ${users.length} connected users for match ${matchId}`);
             
             return ServiceResult.success(users);

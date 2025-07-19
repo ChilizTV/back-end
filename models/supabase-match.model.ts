@@ -1,4 +1,4 @@
-import { ExtendedOdds } from './ApiFootball.model';
+import { ExtendedOdds, MatchWithOdds } from './ApiFootball.model';
 
 // Supabase Match interface (corresponds to database schema)
 export interface SupabaseMatch {
@@ -17,23 +17,6 @@ export interface SupabaseMatch {
     odds: ExtendedOdds | null;
     created_at: string;
     updated_at: string;
-}
-
-// Match with odds (for API responses)
-export interface MatchWithOdds {
-    id: string;
-    api_football_id: number;
-    home_team: string;
-    away_team: string;
-    home_score: number | null;
-    away_score: number | null;
-    match_date: string;
-    status: string;
-    league: string;
-    season: string;
-    venue: string | null;
-    referee: string | null;
-    odds: ExtendedOdds | null;
 }
 
 // Match statistics

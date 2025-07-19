@@ -1,7 +1,8 @@
 import { Request, Response, Router } from 'express';
 import { MatchService } from '../services/match.service';
-import { ServiceErrorCode } from '../services/service.result';
-import { MatchWithOdds, MatchStats, MatchSyncResult } from '../models/supabase-match.model';
+import { ServiceResult, ServiceErrorCode } from '../services/service.result';
+import { MatchWithOdds } from '../models/ApiFootball.model';
+import { MatchStats, MatchSyncResult } from '../models/supabase-match.model';
 
 export class MatchController {
     private router: Router;
@@ -11,27 +12,6 @@ export class MatchController {
         this.router = Router();
         this.matchService = new MatchService();
         this.buildRoutes();
-    }
-
-    private buildRoutes(): void {
-        // Get all matches
-        this.router.get('/', this.getAllMatches.bind(this));
-        
-        // Get matches by status
-        this.router.get('/live', this.getLiveMatches.bind(this));
-        this.router.get('/upcoming', this.getUpcomingMatches.bind(this));
-        
-        // Get match by ID
-        this.router.get('/:id', this.getMatchById.bind(this));
-        
-        // Get matches by league
-        this.router.get('/league/:league', this.getMatchesByLeague.bind(this));
-        
-        // Sync matches from API
-        this.router.post('/sync', this.syncMatches.bind(this));
-        
-        // Get match statistics
-        this.router.get('/stats/summary', this.getMatchStats.bind(this));
     }
 
     private async getAllMatches(req: Request, res: Response): Promise<void> {
@@ -234,5 +214,26 @@ export class MatchController {
 
     public getRouter(): Router {
         return this.router;
+    }
+
+    private buildRoutes(): void {
+        // Get all matches
+        this.router.get('/', this.getAllMatches.bind(this));
+        
+        // Get matches by status
+        this.router.get('/live', this.getLiveMatches.bind(this));
+        this.router.get('/upcoming', this.getUpcomingMatches.bind(this));
+        
+        // Get match by ID
+        this.router.get('/:id', this.getMatchById.bind(this));
+        
+        // Get matches by league
+        this.router.get('/league/:league', this.getMatchesByLeague.bind(this));
+        
+        // Sync matches from API
+        this.router.post('/sync', this.syncMatches.bind(this));
+        
+        // Get match statistics
+        this.router.get('/stats/summary', this.getMatchStats.bind(this));
     }
 } 

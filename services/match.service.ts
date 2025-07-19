@@ -9,6 +9,7 @@ export class MatchService {
 
     constructor() {
         this.apiKey = process.env.API_FOOTBALL_KEY || '';
+        console.log(this.apiKey)
         this.baseUrl = 'https://api-football-v1.p.rapidapi.com/v3';
         console.log('⚽ Match service initialized');
     }

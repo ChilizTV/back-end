@@ -1,198 +1,238 @@
-import express, { Request, Response, Router } from 'express';
-import { MatchService } from '../services';
-import { ServiceResult, ServiceErrorCode } from '../services/service.result';
-
-const matchService = new MatchService();
+import { Request, Response, Router } from 'express';
+import { MatchService } from '../services/match.service';
+import { ServiceErrorCode } from '../services/service.result';
+import { MatchWithOdds, MatchStats, MatchSyncResult } from '../models/supabase-match.model';
 
 export class MatchController {
+    private router: Router;
+    private matchService: MatchService;
 
-    async getAllMatches(req: Request, res: Response) {
+    constructor() {
+        this.router = Router();
+        this.matchService = new MatchService();
+        this.buildRoutes();
+    }
+
+    private buildRoutes(): void {
+        // Get all matches
+        this.router.get('/', this.getAllMatches.bind(this));
+        
+        // Get matches by status
+        this.router.get('/live', this.getLiveMatches.bind(this));
+        this.router.get('/upcoming', this.getUpcomingMatches.bind(this));
+        
+        // Get match by ID
+        this.router.get('/:id', this.getMatchById.bind(this));
+        
+        // Get matches by league
+        this.router.get('/league/:league', this.getMatchesByLeague.bind(this));
+        
+        // Sync matches from API
+        this.router.post('/sync', this.syncMatches.bind(this));
+        
+        // Get match statistics
+        this.router.get('/stats/summary', this.getMatchStats.bind(this));
+    }
+
+    private async getAllMatches(req: Request, res: Response): Promise<void> {
         try {
-            console.log('GET /matches - Fetching all matches');
-            const serviceResult: ServiceResult<any[]> = await matchService.getAllMatches();
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log(`Returning ${serviceResult.result?.length || 0} matches`);
-                return res.status(200).json(serviceResult.result);
+            console.log('📋 GET /matches - Fetching all matches');
+            
+            const result = await this.matchService.getMatchesFromSupabase();
+            
+            if (result.errorCode === ServiceErrorCode.success) {
+                res.json({
+                    success: true,
+                    matches: result.result,
+                    count: result.result?.length || 0,
+                    timestamp: Date.now()
+                });
             } else {
-                console.error('Error in getAllMatches service');
-                return res.status(500).json({ message: 'Error fetching matches' });
+                res.status(500).json({ error: 'Failed to fetch matches' });
             }
-        } catch (err) {
-            console.error('Exception in getAllMatches:', err);
-            return res.status(500).json({ message: 'Error fetching matches' });
+        } catch (error) {
+            console.error('❌ Error in getAllMatches:', error);
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
 
-    async getMatchById(req: Request, res: Response) {
+    private async getLiveMatches(req: Request, res: Response): Promise<void> {
+        try {
+            console.log('📺 GET /matches/live - Fetching live matches');
+            
+            const result = await this.matchService.getMatchesFromSupabase();
+            
+            if (result.errorCode === ServiceErrorCode.success) {
+                const matches = result.result as MatchWithOdds[];
+                const liveMatches = matches.filter(match => 
+                    match.status === '1H' || match.status === '2H' || match.status === 'HT'
+                );
+                
+                res.json({
+                    success: true,
+                    matches: liveMatches,
+                    count: liveMatches.length,
+                    timestamp: Date.now()
+                });
+            } else {
+                res.status(500).json({ error: 'Failed to fetch live matches' });
+            }
+        } catch (error) {
+            console.error('❌ Error in getLiveMatches:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    private async getUpcomingMatches(req: Request, res: Response): Promise<void> {
+        try {
+            console.log('⏰ GET /matches/upcoming - Fetching upcoming matches');
+            
+            const result = await this.matchService.getMatchesFromSupabase();
+            
+            if (result.errorCode === ServiceErrorCode.success) {
+                const matches = result.result as MatchWithOdds[];
+                const now = new Date();
+                const upcomingMatches = matches.filter(match => {
+                    const matchDate = new Date(match.match_date);
+                    return matchDate > now && match.status === 'NS';
+                });
+                
+                res.json({
+                    success: true,
+                    matches: upcomingMatches,
+                    count: upcomingMatches.length,
+                    timestamp: Date.now()
+                });
+            } else {
+                res.status(500).json({ error: 'Failed to fetch upcoming matches' });
+            }
+        } catch (error) {
+            console.error('❌ Error in getUpcomingMatches:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    private async getMatchById(req: Request, res: Response): Promise<void> {
         try {
             const { id } = req.params;
-            console.log(`GET /matches/${id} - Fetching match by ID`);
-            const serviceResult: ServiceResult<any> = await matchService.getMatchById(Number(id));
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log(`Match ${id} found and returned`);
-                return res.status(200).json(serviceResult.result);
-            } else if (serviceResult.errorCode === ServiceErrorCode.notFound) {
-                console.log(`Match ${id} not found or not within next 24 hours`);
-                return res.status(404).json({ message: 'Match not found or not within next 24 hours' });
+            console.log(`🔍 GET /matches/${id} - Fetching match by ID`);
+            
+            const result = await this.matchService.getMatchesFromSupabase();
+            
+            if (result.errorCode === ServiceErrorCode.success) {
+                const matches = result.result as MatchWithOdds[];
+                const match = matches.find(m => m.api_football_id === parseInt(id));
+                
+                if (!match) {
+                    res.status(404).json({ error: 'Match not found' });
+                    return;
+                }
+                
+                res.json({
+                    success: true,
+                    match,
+                    timestamp: Date.now()
+                });
             } else {
-                console.error(`Error fetching match ${id}`);
-                return res.status(500).json({ message: 'Error fetching match' });
+                res.status(500).json({ error: 'Failed to fetch match' });
             }
-        } catch (err) {
-            console.error('Exception in getMatchById:', err);
-            return res.status(500).json({ message: 'Error fetching match' });
+        } catch (error) {
+            console.error('❌ Error in getMatchById:', error);
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
 
-    async getLiveMatches(req: Request, res: Response) {
-        try {
-            console.log('GET /matches/live - Fetching live matches');
-            const serviceResult: ServiceResult<any[]> = await matchService.getLiveMatches();
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log(`Returning ${serviceResult.result?.length || 0} live matches`);
-                return res.status(200).json(serviceResult.result);
-            } else {
-                console.error('Error in getLiveMatches service');
-                return res.status(500).json({ message: 'Error fetching live matches' });
-            }
-        } catch (err) {
-            console.error('Exception in getLiveMatches:', err);
-            return res.status(500).json({ message: 'Error fetching live matches' });
-        }
-    }
-
-    async getUpcomingMatches(req: Request, res: Response) {
-        try {
-            console.log('GET /matches/upcoming - Fetching upcoming matches');
-            const serviceResult: ServiceResult<any[]> = await matchService.getUpcomingMatches();
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log(`Returning ${serviceResult.result?.length || 0} upcoming matches`);
-                return res.status(200).json(serviceResult.result);
-            } else {
-                console.error('Error in getUpcomingMatches service');
-                return res.status(500).json({ message: 'Error fetching upcoming matches' });
-            }
-        } catch (err) {
-            console.error('Exception in getUpcomingMatches:', err);
-            return res.status(500).json({ message: 'Error fetching upcoming matches' });
-        }
-    }
-
-    async getMatchesByLeague(req: Request, res: Response) {
+    private async getMatchesByLeague(req: Request, res: Response): Promise<void> {
         try {
             const { league } = req.params;
-            console.log(`GET /matches/league/${league} - Fetching matches by league`);
-            const serviceResult: ServiceResult<any[]> = await matchService.getMatchesByLeague(league);
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log(`Returning ${serviceResult.result?.length || 0} matches for league ${league}`);
-                return res.status(200).json(serviceResult.result);
-            } else {
-                console.error(`Error in getMatchesByLeague service for league ${league}`);
-                return res.status(500).json({ message: 'Error fetching matches by league' });
-            }
-        } catch (err) {
-            console.error('Exception in getMatchesByLeague:', err);
-            return res.status(500).json({ message: 'Error fetching matches by league' });
-        }
-    }
-
-    async getMatchesInNext24Hours(req: Request, res: Response) {
-        try {
-            console.log('GET /matches/next-24h - Fetching matches in next 24 hours');
-            const serviceResult: ServiceResult<any[]> = await matchService.getMatchesInNext24Hours();
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log(`Returning ${serviceResult.result?.length || 0} matches in next 24h`);
-                return res.status(200).json(serviceResult.result);
-            } else {
-                console.error('Error in getMatchesInNext24Hours service');
-                return res.status(500).json({ message: 'Error fetching matches in next 24 hours' });
-            }
-        } catch (err) {
-            console.error('Exception in getMatchesInNext24Hours:', err);
-            return res.status(500).json({ message: 'Error fetching matches in next 24 hours' });
-        }
-    }
-
-    async syncMatchesFromApi(req: Request, res: Response) {
-        try {
-            console.log('POST /matches/sync - Syncing matches from API');
-            const serviceResult: ServiceResult<void> = await matchService.syncMatchesFromApi();
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log('Matches synced successfully');
-                return res.status(200).json({ message: 'Matches synced successfully' });
-            } else {
-                console.error('Error in syncMatchesFromApi service');
-                return res.status(500).json({ message: 'Error syncing matches from API' });
-            }
-        } catch (err) {
-            console.error('Exception in syncMatchesFromApi:', err);
-            return res.status(500).json({ message: 'Error syncing matches from API' });
-        }
-    }
-
-    async getMatchesByDateRange(req: Request, res: Response) {
-        try {
-            const { startDate, endDate } = req.query;
-            console.log(`GET /matches/date-range - Fetching matches by date range: ${startDate} to ${endDate}`);
+            console.log(`🏆 GET /matches/league/${league} - Fetching matches by league`);
             
-            if (!startDate || !endDate) {
-                console.error('Missing startDate or endDate parameters');
-                return res.status(400).json({ message: 'Start date and end date are required' });
-            }
-
-            const start = new Date(startDate as string);
-            const end = new Date(endDate as string);
-
-            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                console.error('Invalid date format provided');
-                return res.status(400).json({ message: 'Invalid date format' });
-            }
-
-            const serviceResult: ServiceResult<any[]> = await matchService.getMatchesByDateRange(start, end);
-            if (serviceResult.errorCode === ServiceErrorCode.success) {
-                console.log(`Returning ${serviceResult.result?.length || 0} matches for date range`);
-                return res.status(200).json(serviceResult.result);
+            const result = await this.matchService.getMatchesFromSupabase();
+            
+            if (result.errorCode === ServiceErrorCode.success) {
+                const matches = result.result as MatchWithOdds[];
+                const leagueMatches = matches.filter(match => 
+                    match.league.toLowerCase().includes(league.toLowerCase())
+                );
+                
+                res.json({
+                    success: true,
+                    matches: leagueMatches,
+                    count: leagueMatches.length,
+                    league,
+                    timestamp: Date.now()
+                });
             } else {
-                console.error('Error in getMatchesByDateRange service');
-                return res.status(500).json({ message: 'Error fetching matches by date range' });
+                res.status(500).json({ error: 'Failed to fetch league matches' });
             }
-        } catch (err) {
-            console.error('Exception in getMatchesByDateRange:', err);
-            return res.status(500).json({ message: 'Error fetching matches by date range' });
+        } catch (error) {
+            console.error('❌ Error in getMatchesByLeague:', error);
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
 
-    async getCacheStats(req: Request, res: Response) {
+    private async syncMatches(req: Request, res: Response): Promise<void> {
         try {
-            console.log('GET /matches/cache/stats - Fetching cache statistics');
-            const cacheStats = matchService.getCacheStats();
-            console.log('Cache statistics retrieved successfully');
-            return res.status(200).json({
-                message: 'Cache statistics retrieved successfully',
-                stats: cacheStats
-            });
-        } catch (err) {
-            console.error('Exception in getCacheStats:', err);
-            return res.status(500).json({ message: 'Error fetching cache statistics' });
+            console.log('🔄 POST /matches/sync - Starting match synchronization');
+            
+            const result = await this.matchService.syncMatches();
+            
+            if (result.errorCode === ServiceErrorCode.success) {
+                const syncResult = result.result as MatchSyncResult;
+                
+                res.json({
+                    success: true,
+                    message: 'Match synchronization completed',
+                    stored: syncResult.stored,
+                    cleaned: syncResult.cleaned,
+                    timestamp: Date.now()
+                });
+            } else {
+                res.status(500).json({ error: 'Failed to sync matches' });
+            }
+        } catch (error) {
+            console.error('❌ Error in syncMatches:', error);
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
 
-    buildRoutes(): Router {
-        const router = express.Router();
-        
-        router.get('/', this.getAllMatches.bind(this));
-        router.get('/live', this.getLiveMatches.bind(this));
-        router.get('/upcoming', this.getUpcomingMatches.bind(this));
-        router.get('/next-24h', this.getMatchesInNext24Hours.bind(this));
-        router.get('/league/:league', this.getMatchesByLeague.bind(this));
-        router.get('/date-range', this.getMatchesByDateRange.bind(this));
-        router.get('/:id', this.getMatchById.bind(this));
-        
-        // Route pour les statistiques du cache
-        router.get('/cache/stats', this.getCacheStats.bind(this));
-        
-        router.post('/sync', this.syncMatchesFromApi.bind(this));
-        
-        return router;
+    private async getMatchStats(req: Request, res: Response): Promise<void> {
+        try {
+            console.log('📊 GET /matches/stats/summary - Fetching match statistics');
+            
+            const result = await this.matchService.getMatchesFromSupabase();
+            
+            if (result.errorCode === ServiceErrorCode.success) {
+                const matches = result.result as MatchWithOdds[];
+                const now = new Date();
+                
+                const stats: MatchStats = {
+                    total: matches.length,
+                    live: matches.filter(m => m.status === '1H' || m.status === '2H' || m.status === 'HT').length,
+                    upcoming: matches.filter(m => {
+                        const matchDate = new Date(m.match_date);
+                        return matchDate > now && m.status === 'NS';
+                    }).length,
+                    finished: matches.filter(m => m.status === 'FT' || m.status === 'AET' || m.status === 'PEN').length,
+                    leagues: [...new Set(matches.map(m => m.league))].length,
+                    timestamp: Date.now()
+                };
+                
+                res.json({
+                    success: true,
+                    stats,
+                    timestamp: Date.now()
+                });
+            } else {
+                res.status(500).json({ error: 'Failed to fetch match statistics' });
+            }
+        } catch (error) {
+            console.error('❌ Error in getMatchStats:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
+    public getRouter(): Router {
+        return this.router;
     }
 } 

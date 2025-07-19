@@ -2,45 +2,32 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from "cors";
 import http from 'http';
-import Gun from 'gun';
-import { MatchController } from './controllers';
+import { MatchController } from './controllers/match.controller';
 import { ChatController } from './controllers/chat.controller';
 import { startMatchSyncCron } from './cron/sync-matches.cron';
 import { config } from 'dotenv';
+import './config/supabase'; // Initialize Supabase
+
 config();
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT || 3000;
-
-const gun = Gun({
-    web: server,
-    multicast: false,
-    localStorage: false, // Disable localStorage to prevent file system loops
-    axe: false // Disable axe to prevent network loops
-});
-
-// Make Gun instance global for ChatService to use
-(global as any).gun = gun;
+const PORT = process.env.PORT;
 
 app.use(bodyParser.json());
 app.use(cors());
 
-app.use('/gun', (req, res, next) => {
-    next();
-});
-
 const matchController = new MatchController();
 const chatController = new ChatController();
 
-app.use('/matches', matchController.buildRoutes());
+app.use('/matches', matchController.getRouter());
 app.use('/chat', chatController.getRouter());
 
-app.get('/gun-status', (req, res) => {
+app.get('/supabase-status', (req, res) => {
     res.json({ 
         success: true, 
-        message: 'Gun.js server is running',
-        websocket: true,
+        message: 'Supabase Chat service is running',
+        realtime: true,
         port: PORT
     });
 });
@@ -48,19 +35,19 @@ app.get('/gun-status', (req, res) => {
 app.get('/', (req, res) => {
     res.json({ 
         success: true, 
-        message: 'Football Chat API',
-        version: '1.0.0',
+        message: 'Football Chat API with Supabase Realtime',
+        version: '2.0.0',
         endpoints: {
             matches: '/matches',
             chat: '/chat',
-            gunStatus: '/gun-status'
+            supabaseStatus: '/supabase-status'
         }
     });
 });
 
 server.listen(PORT, () => {
     console.log(`🚀 Server listening on port ${PORT}`);
-    console.log(`🔗 Gun.js WebSocket server running on port ${PORT}`);
+    console.log(`🔗 Supabase Realtime service connected`);
     console.log(`📡 Chat endpoints available at /chat`);
     console.log(`⚽ Match endpoints available at /matches`);
     console.log(`🌐 API available at http://localhost:${PORT}`);

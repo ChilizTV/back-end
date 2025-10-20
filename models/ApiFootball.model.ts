@@ -40,7 +40,6 @@ export interface ApiFootballOdds {
     }>;
 }
 
-// Types d'odds étendus
 export interface ExtendedOdds {
     // Match Winner (1X2)
     match_winner?: {
@@ -112,12 +111,12 @@ export interface ExtendedOdds {
     
     // Correct Score
     correct_score?: {
-        [key: string]: number; // "1-0", "2-1", etc.
+        [key: string]: number;
     };
     
     // Exact Goals Number
     exact_goals_number?: {
-        [key: string]: number; // "0", "1", "2", etc.
+        [key: string]: number;
     };
     
     // Goalscorers (First Goalscorer)
@@ -162,7 +161,7 @@ export interface ExtendedOdds {
 }
 
 export interface MatchWithOdds {
-    id: number;
+    id: string;
     api_football_id: number;
     home_team: string;
     away_team: string;
@@ -174,5 +173,5 @@ export interface MatchWithOdds {
     season: string;
     venue: string | null;
     referee: string | null;
-    odds: ExtendedOdds;
+    odds: ExtendedOdds | null;
 }

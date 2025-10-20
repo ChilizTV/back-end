@@ -1,6 +1,8 @@
+import { supabase } from '../config/supabase';
 import { ServiceResult } from './service.result';
+import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds, MatchWithOdds } from '../models/ApiFootball.model';
+import { SupabaseMatch, MatchSyncResult } from '../models/supabase-match.model';
 import axios from 'axios';
-import { ApiFootballMatch, ApiFootballOdds, MatchWithOdds, ExtendedOdds } from '../models';
 import { config } from 'dotenv';
 
 config();
@@ -16,6 +18,10 @@ export class MatchService {
     private readonly ALLOWED_LEAGUE_IDS = [
         743, 15, 39, 61, 140, 2, 3, 78, 135
     ];
+
+    constructor() {
+        console.log('⚽ Match service initialized');
+    }
 
     private getNext24Hours(): Date {
         const now = new Date();
@@ -374,7 +380,7 @@ export class MatchService {
         const odds = await this.getMatchOdds(apiMatch.fixture.id);
         
         return {
-            id: apiMatch.fixture.id,
+            id: apiMatch.fixture.id.toString(),
             api_football_id: apiMatch.fixture.id,
             home_team: apiMatch.teams.home.name,
             away_team: apiMatch.teams.away.name,
@@ -390,10 +396,13 @@ export class MatchService {
         };
     }
 
-    async refetchMatchesFromApi(): Promise<ServiceResult<void>> {
+    /**
+     * Fetch matches from API Football for the last and next 24 hours
+     */
+    async fetchMatchesFromAPI(): Promise<ServiceResult<ApiFootballMatch[]>> {
         if (this.isFetching) {
             console.log('Already fetching matches, skipping...');
-            return ServiceResult.success(undefined);
+            return ServiceResult.success([]);
         }
 
         this.isFetching = true;
@@ -505,20 +514,10 @@ export class MatchService {
                 response: filteredMatches
             }, null, 2));
 
-            const matchesIn24h = await Promise.all(filteredMatches
-                .map(apiMatch => this.transformApiMatchToMatchWithOdds(apiMatch)));
-
-            const sortedMatches = matchesIn24h.sort((a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime());
-
-            this.matchesCache = sortedMatches;
-            this.lastFetchTime = new Date();
-
-            console.log(`✅ Cache updated: ${matchesIn24h.length} matches stored in memory`);
-            console.log(`⏰ Last fetch time: ${this.lastFetchTime.toISOString()}`);
-
-            return ServiceResult.success(undefined);
+            console.log(`✅ Fetched ${filteredMatches.length} matches from API Football`);
+            return ServiceResult.success(filteredMatches);
         } catch (error) {
-            console.error('❌ Error refetching matches from API:', error);
+            console.error('❌ Error fetching matches from API:', error);
             this.isFetching = false;
             return ServiceResult.failed();
         } finally {
@@ -526,153 +525,443 @@ export class MatchService {
         }
     }
 
-    private getMatchesFromCache(): MatchWithOdds[] {
-        if (!this.lastFetchTime) {
-            console.log('⚠️ No matches in cache, returning empty array');
-            return [];
-        }
-
-        const cacheAge = Date.now() - this.lastFetchTime.getTime();
-        const cacheAgeMinutes = cacheAge / (1000 * 60);
-        
-        console.log(`📦 Cache age: ${cacheAgeMinutes.toFixed(2)} minutes`);
-        console.log(`📊 Returning ${this.matchesCache.length} matches from cache`);
-
-        return [...this.matchesCache];
-    }
-
-    private async ensureFreshData(): Promise<void> {
-        const cacheAgeThreshold = 15 * 60 * 1000;
-        
-        if (!this.lastFetchTime || 
-            Date.now() - this.lastFetchTime.getTime() > cacheAgeThreshold || 
-            this.matchesCache.length === 0) {
-            console.log('🔄 Cache is stale or empty, refetching data...');
-            await this.refetchMatchesFromApi();
-        }
-    }
-
-    async getAllMatches(): Promise<ServiceResult<MatchWithOdds[]>> {
+    /**
+     * Fetch odds for specific matches
+     */
+    async fetchOddsForMatches(matchIds: number[]): Promise<ServiceResult<ApiFootballOdds[]>> {
         try {
-            console.log('📋 GET /matches - Fetching all matches from cache');
-            await this.ensureFreshData();
-            const matches = this.getMatchesFromCache();
-            console.log(`✅ Returning ${matches.length} matches from cache`);
-            return ServiceResult.success(matches);
-        } catch (error) {
-            console.error('❌ Error in getAllMatches:', error);
-            return ServiceResult.failed();
-        }
-    }
-
-    async getLiveMatches(): Promise<ServiceResult<MatchWithOdds[]>> {
-        try {
-            console.log('📺 GET /matches/live - Fetching live matches from cache');
-            await this.ensureFreshData();
-            const allMatches = this.getMatchesFromCache();
-            const liveMatches = allMatches.filter(match => match.status === 'live');
-            console.log(`✅ Returning ${liveMatches.length} live matches from cache`);
-            return ServiceResult.success(liveMatches);
-        } catch (error) {
-            console.error('❌ Error in getLiveMatches:', error);
-            return ServiceResult.failed();
-        }
-    }
-
-    async getUpcomingMatches(): Promise<ServiceResult<MatchWithOdds[]>> {
-        try {
-            console.log('⏰ GET /matches/upcoming - Fetching upcoming matches from cache');
-            await this.ensureFreshData();
-            const allMatches = this.getMatchesFromCache();
-            const upcomingMatches = allMatches.filter(match => match.status === 'scheduled');
-            console.log(`✅ Returning ${upcomingMatches.length} upcoming matches from cache`);
-            return ServiceResult.success(upcomingMatches);
-        } catch (error) {
-            console.error('❌ Error in getUpcomingMatches:', error);
-            return ServiceResult.failed();
-        }
-    }
-
-    async getMatchesByLeague(league: string): Promise<ServiceResult<MatchWithOdds[]>> {
-        try {
-            console.log(`🏆 GET /matches/league/${league} - Fetching matches by league from cache`);
-            await this.ensureFreshData();
-            const allMatches = this.getMatchesFromCache();
-            const leagueMatches = allMatches.filter(match => 
-                match.league.toLowerCase().includes(league.toLowerCase())
-            );
-            console.log(`✅ Returning ${leagueMatches.length} matches for league ${league} from cache`);
-            return ServiceResult.success(leagueMatches);
-        } catch (error) {
-            console.error('❌ Error in getMatchesByLeague:', error);
-            return ServiceResult.failed();
-        }
-    }
-
-    async getMatchById(id: number): Promise<ServiceResult<MatchWithOdds>> {
-        try {
-            console.log(`🔍 GET /matches/${id} - Fetching match by ID from cache`);
-            await this.ensureFreshData();
-            const allMatches = this.getMatchesFromCache();
-            const match = allMatches.find(m => m.id === id);
+            console.log(`💰 Fetching odds for ${matchIds.length} matches...`);
             
-            if (!match) {
-                console.log(`❌ Match ${id} not found in cache`);
-                return ServiceResult.notFound();
-            }
+            const oddsPromises = matchIds.map(async (matchId) => {
+                try {
+                    const response = await axios.get(`${this.API_FOOTBALL_BASE_URL}/odds`, {
+                        headers: {
+                            'x-rapidapi-key': this.API_FOOTBALL_KEY,
+                            'x-rapidapi-host': 'v3.football.api-sports.io'
+                        },
+                        params: {
+                            fixture: matchId,
+                            bookmaker: 1
+                        }
+                    });
 
-            console.log(`✅ Match ${id} found in cache`);
-            return ServiceResult.success(match);
-        } catch (error) {
-            console.error('❌ Error in getMatchById:', error);
-            return ServiceResult.failed();
-        }
-    }
-
-    async getMatchesInNext24Hours(): Promise<ServiceResult<MatchWithOdds[]>> {
-        console.log('⏰ GET /matches/next-24h - Fetching matches in next 24 hours from cache');
-        return this.getAllMatches();
-    }
-
-    async syncMatchesFromApi(): Promise<ServiceResult<void>> {
-        console.log('🔄 POST /matches/sync - Manual sync triggered');
-        return this.refetchMatchesFromApi();
-    }
-
-    async getMatchesByDateRange(startDate: Date, endDate: Date): Promise<ServiceResult<MatchWithOdds[]>> {
-        try {
-            console.log(`📅 GET /matches/date-range - Fetching matches by date range from cache`);
-            await this.ensureFreshData();
-            const allMatches = this.getMatchesFromCache();
-            
-            const matchesInRange = allMatches.filter(match => {
-                const matchDate = new Date(match.match_date);
-                return matchDate >= startDate && matchDate <= endDate;
+                    if (response.data.response && response.data.response.length > 0) {
+                        return response.data.response[0];
+                    }
+                    return null;
+                } catch (error) {
+                    console.warn(`⚠️ Failed to fetch odds for match ${matchId}`);
+                    return null;
+                }
             });
 
-            console.log(`✅ Returning ${matchesInRange.length} matches for date range from cache`);
-            return ServiceResult.success(matchesInRange);
+            const oddsResults = await Promise.all(oddsPromises);
+            const validOdds = oddsResults.filter(odds => odds !== null);
+            
+            console.log(`✅ Fetched odds for ${validOdds.length} matches`);
+            return ServiceResult.success(validOdds);
         } catch (error) {
-            console.error('❌ Error in getMatchesByDateRange:', error);
+            console.error('❌ Error fetching odds:', error);
             return ServiceResult.failed();
         }
     }
 
-    getCacheStats(): { 
-        matchesCount: number; 
-        lastFetchTime: Date | null; 
-        cacheAgeMinutes: number | null;
-        isFetching: boolean;
-    } {
-        const cacheAgeMinutes = this.lastFetchTime 
-            ? (Date.now() - this.lastFetchTime.getTime()) / (1000 * 60)
-            : null;
+    /**
+     * Store matches in Supabase
+     */
+    async storeMatchesInSupabase(matches: ApiFootballMatch[], oddsData: ApiFootballOdds[]): Promise<ServiceResult<number>> {
+        try {
+            console.log(`💾 Storing ${matches.length} matches in Supabase...`);
+            
+            // Create a map of odds by fixture ID for quick lookup
+            const oddsMap = new Map<number, ApiFootballOdds>();
+            oddsData.forEach(odds => {
+                if (odds.fixture?.id) {
+                    oddsMap.set(odds.fixture.id, odds);
+                }
+            });
 
-        return {
-            matchesCount: this.matchesCache.length,
-            lastFetchTime: this.lastFetchTime,
-            cacheAgeMinutes,
-            isFetching: this.isFetching
-        };
+            const matchesToInsert = matches.map(match => {
+                const odds = oddsMap.get(match.fixture.id);
+                const extendedOdds = odds ? this.parseOdds(odds) : null;
+                
+                return {
+                    api_football_id: match.fixture.id,
+                    home_team: match.teams.home.name,
+                    away_team: match.teams.away.name,
+                    home_score: match.goals.home,
+                    away_score: match.goals.away,
+                    match_date: match.fixture.date,
+                    status: match.fixture.status.short,
+                    league: match.league.name,
+                    season: match.league.season.toString(),
+                    venue: match.fixture.venue?.name || null,
+                    referee: match.referee || null,
+                    odds: extendedOdds
+                };
+            });
+
+            // Use upsert to handle duplicates
+            const { data, error } = await supabase
+                .from('matches')
+                .upsert(matchesToInsert, { 
+                    onConflict: 'api_football_id',
+                    ignoreDuplicates: false 
+                })
+                .select();
+
+            if (error) {
+                console.error('❌ Supabase error storing matches:', error);
+                throw error;
+            }
+
+            console.log(`✅ Stored ${data?.length || 0} matches in Supabase`);
+            return ServiceResult.success(data?.length || 0);
+        } catch (error) {
+            console.error('❌ Error storing matches in Supabase:', error);
+            return ServiceResult.failed();
+        }
+    }
+
+    /**
+     * Get all matches from Supabase
+     */
+    async getMatchesFromSupabase(): Promise<ServiceResult<MatchWithOdds[]>> {
+        try {
+            console.log('📋 Getting matches from Supabase...');
+            
+            const { data, error } = await supabase
+                .from('matches')
+                .select('*')
+                .order('match_date', { ascending: true });
+
+            if (error) {
+                console.error('❌ Supabase error getting matches:', error);
+                throw error;
+            }
+
+            const matches = data.map((match: SupabaseMatch) => ({
+                id: match.id,
+                api_football_id: match.api_football_id,
+                home_team: match.home_team,
+                away_team: match.away_team,
+                home_score: match.home_score,
+                away_score: match.away_score,
+                match_date: match.match_date,
+                status: match.status,
+                league: match.league,
+                season: match.season,
+                venue: match.venue,
+                referee: match.referee,
+                odds: match.odds
+            }));
+
+            console.log(`✅ Retrieved ${matches.length} matches from Supabase`);
+            return ServiceResult.success(matches);
+        } catch (error) {
+            console.error('❌ Error getting matches from Supabase:', error);
+            return ServiceResult.failed();
+        }
+    }
+
+    /**
+     * Clean up old matches and their related data
+     */
+    async cleanupOldMatches(): Promise<ServiceResult<number>> {
+        try {
+            console.log('🧹 Cleaning up old matches...');
+            
+            // Get matches older than 24 hours
+            const { data: oldMatches, error: selectError } = await supabase
+                .from('matches')
+                .select('api_football_id')
+                .lt('match_date', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+            if (selectError) {
+                console.error('❌ Error selecting old matches:', selectError);
+                throw selectError;
+            }
+
+            if (!oldMatches || oldMatches.length === 0) {
+                console.log('✅ No old matches to clean up');
+                return ServiceResult.success(0);
+            }
+
+            const matchIds = oldMatches.map((match: { api_football_id: number }) => match.api_football_id);
+            console.log(`🗑️ Cleaning up ${matchIds.length} old matches...`);
+
+            // Delete related chat messages
+            const { error: messagesError } = await supabase
+                .from('chat_messages')
+                .delete()
+                .in('match_id', matchIds);
+
+            if (messagesError) {
+                console.error('❌ Error deleting chat messages:', messagesError);
+            }
+
+            // Delete related connected users
+            const { error: usersError } = await supabase
+                .from('chat_connected_users')
+                .delete()
+                .in('match_id', matchIds);
+
+            if (usersError) {
+                console.error('❌ Error deleting connected users:', usersError);
+            }
+
+            // Delete old matches
+            const { error: matchesError } = await supabase
+                .from('matches')
+                .delete()
+                .in('api_football_id', matchIds);
+
+            if (matchesError) {
+                console.error('❌ Error deleting old matches:', matchesError);
+                throw matchesError;
+            }
+
+            console.log(`✅ Cleaned up ${matchIds.length} old matches and related data`);
+            return ServiceResult.success(matchIds.length);
+        } catch (error) {
+            console.error('❌ Error cleaning up old matches:', error);
+            return ServiceResult.failed();
+        }
+
+    }
+
+    /**
+     * Sync matches: fetch from API, store in Supabase, clean up old ones
+     */
+    async syncMatches(): Promise<ServiceResult<MatchSyncResult>> {
+        try {
+            console.log('🔄 Starting match synchronization...');
+            
+            // 1. Fetch matches from API
+            const apiResult = await this.fetchMatchesFromAPI();
+            if (apiResult.errorCode !== 0) {
+                throw new Error('Failed to fetch matches from API');
+            }
+
+            const matches = apiResult.result as ApiFootballMatch[];
+            if (matches.length === 0) {
+                console.log('⚠️ No matches found from API');
+                return ServiceResult.success({ stored: 0, cleaned: 0 });
+            }
+
+            // 2. Fetch odds for matches
+            const matchIds = matches.map(match => match.fixture.id);
+            const oddsResult = await this.fetchOddsForMatches(matchIds);
+            const oddsData = oddsResult.errorCode === 0 ? (oddsResult.result as ApiFootballOdds[]) : [];
+
+            // 3. Store matches in Supabase
+            const storeResult = await this.storeMatchesInSupabase(matches, oddsData);
+            if (storeResult.errorCode !== 0) {
+                throw new Error('Failed to store matches in Supabase');
+            }
+
+            // 4. Clean up old matches
+            const cleanupResult = await this.cleanupOldMatches();
+            const cleanedCount = cleanupResult.errorCode === 0 ? (cleanupResult.result as number) : 0;
+
+            console.log(`✅ Match sync completed: ${storeResult.result} stored, ${cleanedCount} cleaned`);
+            return ServiceResult.success({ 
+                stored: storeResult.result as number, 
+                cleaned: cleanedCount 
+            });
+        } catch (error) {
+            console.error('❌ Error syncing matches:', error);
+            return ServiceResult.failed();
+        }
+    }
+
+    /**
+     * Parse odds data from API Football format to our extended format
+     */
+    private parseOdds(oddsData?: ApiFootballOdds): ExtendedOdds | null {
+        if (!oddsData || !oddsData.bookmakers) {
+            return null;
+        }
+
+        const extendedOdds: ExtendedOdds = {};
+
+        oddsData.bookmakers.forEach(bookmaker => {
+            bookmaker.bets.forEach(bet => {
+                switch (bet.name) {
+                    case 'Match Winner':
+                        extendedOdds.match_winner = {
+                            home: 0,
+                            draw: 0,
+                            away: 0
+                        };
+                        bet.values.forEach(value => {
+                            if (value.value === 'Home') extendedOdds.match_winner!.home = parseFloat(value.odd);
+                            else if (value.value === 'Draw') extendedOdds.match_winner!.draw = parseFloat(value.odd);
+                            else if (value.value === 'Away') extendedOdds.match_winner!.away = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'Over/Under':
+                        extendedOdds.over_under = {
+                            over_0_5: 0, over_1_5: 0, over_2_5: 0, over_3_5: 0, over_4_5: 0,
+                            under_0_5: 0, under_1_5: 0, under_2_5: 0, under_3_5: 0, under_4_5: 0
+                        };
+                        bet.values.forEach(value => {
+                            const key = value.value.toLowerCase().replace(' ', '_').replace('.', '_');
+                            if (key in extendedOdds.over_under!) {
+                                (extendedOdds.over_under as any)[key] = parseFloat(value.odd);
+                            }
+                        });
+                        break;
+                    case 'Both teams score':
+                        extendedOdds.both_teams_score = {
+                            yes: 0,
+                            no: 0
+                        };
+                        bet.values.forEach(value => {
+                            if (value.value === 'Yes') extendedOdds.both_teams_score!.yes = parseFloat(value.odd);
+                            else if (value.value === 'No') extendedOdds.both_teams_score!.no = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'Double Chance':
+                        extendedOdds.double_chance = {
+                            home_or_draw: 0,
+                            home_or_away: 0,
+                            draw_or_away: 0
+                        };
+                        bet.values.forEach(value => {
+                            if (value.value === 'Home or Draw') extendedOdds.double_chance!.home_or_draw = parseFloat(value.odd);
+                            else if (value.value === 'Home or Away') extendedOdds.double_chance!.home_or_away = parseFloat(value.odd);
+                            else if (value.value === 'Draw or Away') extendedOdds.double_chance!.draw_or_away = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'Draw No Bet':
+                        extendedOdds.draw_no_bet = {
+                            home: 0,
+                            away: 0
+                        };
+                        bet.values.forEach(value => {
+                            if (value.value === 'Home') extendedOdds.draw_no_bet!.home = parseFloat(value.odd);
+                            else if (value.value === 'Away') extendedOdds.draw_no_bet!.away = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'First Half Winner':
+                        extendedOdds.first_half_winner = {
+                            home: 0,
+                            draw: 0,
+                            away: 0
+                        };
+                        bet.values.forEach(value => {
+                            if (value.value === 'Home') extendedOdds.first_half_winner!.home = parseFloat(value.odd);
+                            else if (value.value === 'Draw') extendedOdds.first_half_winner!.draw = parseFloat(value.odd);
+                            else if (value.value === 'Away') extendedOdds.first_half_winner!.away = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'First Half Goals':
+                        extendedOdds.first_half_goals = {
+                            over_0_5: 0,
+                            over_1_5: 0,
+                            under_0_5: 0,
+                            under_1_5: 0
+                        };
+                        bet.values.forEach(value => {
+                            const key = value.value.toLowerCase().replace(' ', '_').replace('.', '_');
+                            if (key in extendedOdds.first_half_goals!) {
+                                (extendedOdds.first_half_goals as any)[key] = parseFloat(value.odd);
+                            }
+                        });
+                        break;
+                    case 'Half Time/Full Time':
+                        extendedOdds.ht_ft = {
+                            home_home: 0, home_draw: 0, home_away: 0,
+                            draw_home: 0, draw_draw: 0, draw_away: 0,
+                            away_home: 0, away_draw: 0, away_away: 0
+                        };
+                        bet.values.forEach(value => {
+                            const key = value.value.toLowerCase().replace(' ', '_');
+                            if (key in extendedOdds.ht_ft!) {
+                                (extendedOdds.ht_ft as any)[key] = parseFloat(value.odd);
+                            }
+                        });
+                        break;
+                    case 'Correct Score':
+                        extendedOdds.correct_score = {};
+                        bet.values.forEach(value => {
+                            extendedOdds.correct_score![value.value] = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'Exact Goals Number':
+                        extendedOdds.exact_goals_number = {};
+                        bet.values.forEach(value => {
+                            extendedOdds.exact_goals_number![value.value] = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'Goalscorers':
+                        extendedOdds.goalscorers = {};
+                        bet.values.forEach(value => {
+                            extendedOdds.goalscorers![value.value] = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'Clean Sheet':
+                        extendedOdds.clean_sheet = {
+                            home_yes: 0, home_no: 0,
+                            away_yes: 0, away_no: 0
+                        };
+                        bet.values.forEach(value => {
+                            const key = value.value.toLowerCase().replace(' ', '_');
+                            if (key in extendedOdds.clean_sheet!) {
+                                (extendedOdds.clean_sheet as any)[key] = parseFloat(value.odd);
+                            }
+                        });
+                        break;
+                    case 'Win to Nil':
+                        extendedOdds.win_to_nil = {
+                            home_yes: 0, home_no: 0,
+                            away_yes: 0, away_no: 0
+                        };
+                        bet.values.forEach(value => {
+                            const key = value.value.toLowerCase().replace(' ', '_');
+                            if (key in extendedOdds.win_to_nil!) {
+                                (extendedOdds.win_to_nil as any)[key] = parseFloat(value.odd);
+                            }
+                        });
+                        break;
+                    case 'Highest Scoring Half':
+                        extendedOdds.highest_scoring_half = {
+                            first_half: 0,
+                            second_half: 0,
+                            equal: 0
+                        };
+                        bet.values.forEach(value => {
+                            const key = value.value.toLowerCase().replace(' ', '_');
+                            if (key in extendedOdds.highest_scoring_half!) {
+                                (extendedOdds.highest_scoring_half as any)[key] = parseFloat(value.odd);
+                            }
+                        });
+                        break;
+                    case 'Odd/Even Goals':
+                        extendedOdds.odd_even_goals = {
+                            odd: 0,
+                            even: 0
+                        };
+                        bet.values.forEach(value => {
+                            if (value.value === 'Odd') extendedOdds.odd_even_goals!.odd = parseFloat(value.odd);
+                            else if (value.value === 'Even') extendedOdds.odd_even_goals!.even = parseFloat(value.odd);
+                        });
+                        break;
+                    case 'First Half Goals Odd/Even':
+                        extendedOdds.first_half_odd_even = {
+                            odd: 0,
+                            even: 0
+                        };
+                        bet.values.forEach(value => {
+                            if (value.value === 'Odd') extendedOdds.first_half_odd_even!.odd = parseFloat(value.odd);
+                            else if (value.value === 'Even') extendedOdds.first_half_odd_even!.even = parseFloat(value.odd);
+                        });
+                        break;
+                }
+            });
+        });
+
+        return extendedOdds;
     }
 } 

@@ -2,6 +2,8 @@ import { Request, Response, Router } from 'express';
 import { ChatService } from '../services/chat.service';
 import { TokenBalanceService } from '../services/token-balance.service';
 import { ServiceErrorCode } from '../services/service.result';
+import { ConnectedUser, ChatStats } from '../models/chat.model';
+import { BetType, MessageType } from '../enums';
 
 export class ChatController {
     private router: Router;
@@ -32,8 +34,8 @@ export class ChatController {
         
         this.router.get('/token-balances/:walletAddress', this.getUserTokenBalances.bind(this));
         
-        // WebSocket
-        this.router.get('/gun', this.serveGun.bind(this));
+        // Supabase status
+        this.router.get('/supabase-status', this.serveSupabaseStatus.bind(this));
     }
 
     private async joinRoom(req: Request, res: Response): Promise<void> {
@@ -49,10 +51,12 @@ export class ChatController {
             const result = await this.chatService.joinRoom(parseInt(matchId), userId, username);
             
             if (result.errorCode === ServiceErrorCode.success) {
+                const connectedUser = result.result as ConnectedUser;
                 res.json({ 
                     success: true, 
                     message: `${username} joined match ${matchId}`,
-                    matchId: parseInt(matchId)
+                    matchId: parseInt(matchId),
+                    user: connectedUser
                 });
             } else {
                 res.status(500).json({ error: 'Failed to join room' });
@@ -76,10 +80,12 @@ export class ChatController {
             const result = await this.chatService.leaveRoom(parseInt(matchId), userId, username);
             
             if (result.errorCode === ServiceErrorCode.success) {
+                const connectedUser = result.result as ConnectedUser;
                 res.json({ 
                     success: true, 
                     message: `${username} left match ${matchId}`,
-                    matchId: parseInt(matchId)
+                    matchId: parseInt(matchId),
+                    user: connectedUser
                 });
             } else {
                 res.status(500).json({ error: 'Failed to leave room' });
@@ -127,12 +133,7 @@ export class ChatController {
                 return;
             }
 
-            const validBetTypes = [
-                'match_winner', 'over_under', 'both_teams_score', 'double_chance', 
-                'draw_no_bet', 'first_half_winner', 'first_half_goals', 'ht_ft', 
-                'correct_score', 'exact_goals_number', 'goalscorers', 'clean_sheet', 
-                'win_to_nil', 'highest_scoring_half', 'odd_even_goals', 'first_half_odd_even'
-            ];
+            const validBetTypes = Object.values(BetType);
 
             if (!validBetTypes.includes(betType)) {
                 res.status(400).json({ error: 'betType must be one of the valid types' });
@@ -143,7 +144,7 @@ export class ChatController {
                 parseInt(matchId), 
                 userId, 
                 username, 
-                betType, 
+                betType as BetType, 
                 betSubType, 
                 parseFloat(amount), 
                 parseFloat(odds),
@@ -168,13 +169,24 @@ export class ChatController {
     private async getRoomMessages(req: Request, res: Response): Promise<void> {
         try {
             const { matchId } = req.params;
-            const result = await this.chatService.getRoomMessages(parseInt(matchId));
+            const { userId, messageType, isFeatured, limit, offset } = req.query;
+            
+            // Build filter if parameters are provided
+            const filter: any = {};
+            if (userId) filter.userId = userId as string;
+            if (messageType) filter.messageType = messageType as MessageType;
+            if (isFeatured !== undefined) filter.isFeatured = isFeatured === 'true';
+            if (limit) filter.limit = parseInt(limit as string);
+            if (offset) filter.offset = parseInt(offset as string);
+
+            const result = await this.chatService.getRoomMessages(parseInt(matchId), Object.keys(filter).length > 0 ? filter : undefined);
             
             if (result.errorCode === ServiceErrorCode.success) {
                 res.json({ 
                     success: true, 
                     messages: result.result,
-                    matchId: parseInt(matchId)
+                    matchId: parseInt(matchId),
+                    filter: Object.keys(filter).length > 0 ? filter : undefined
                 });
             } else {
                 res.status(500).json({ error: 'Failed to get room messages' });
@@ -191,10 +203,17 @@ export class ChatController {
             const result = await this.chatService.getConnectedUsers(parseInt(matchId));
             
             if (result.errorCode === ServiceErrorCode.success) {
+                const users = result.result as ConnectedUser[];
                 res.json({ 
                     success: true, 
-                    users: result.result,
-                    matchId: parseInt(matchId)
+                    users: users.map(user => ({
+                        id: user.id,
+                        username: user.username,
+                        connectedAt: user.connectedAt,
+                        lastActivity: user.lastActivity
+                    })),
+                    matchId: parseInt(matchId),
+                    count: users.length
                 });
             } else {
                 res.status(500).json({ error: 'Failed to get connected users' });
@@ -207,10 +226,11 @@ export class ChatController {
 
     private async getChatStats(req: Request, res: Response): Promise<void> {
         try {
-            const stats = this.chatService.getStats();
+            const stats = this.chatService.getStats() as ChatStats;
             res.json({ 
                 success: true, 
-                stats 
+                stats,
+                timestamp: Date.now()
             });
         } catch (error) {
             console.error('❌ Error in getChatStats:', error);
@@ -237,16 +257,17 @@ export class ChatController {
         }
     }
 
-    private async serveGun(req: Request, res: Response): Promise<void> {
+    private async serveSupabaseStatus(req: Request, res: Response): Promise<void> {
         try {
-            const gun = this.chatService.getGunInstance();
-            res.json({ 
-                success: true, 
-                message: 'Gun.js server running',
-                websocket: true
+            const stats = this.chatService.getStats() as ChatStats;
+            res.json({
+                success: true,
+                message: 'Supabase Chat service running',
+                stats,
+                timestamp: Date.now()
             });
         } catch (error) {
-            console.error('❌ Error in serveGun:', error);
+            console.error('❌ Error in serveSupabaseStatus:', error);
             res.status(500).json({ error: 'Internal server error' });
         }
     }

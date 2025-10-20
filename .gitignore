@@ -19,6 +19,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
 # Runtime data
 pids
 *.pid
@@ -114,9 +117,6 @@ temp/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# GUN.js data storage
-radata/
 
 # Database files
 *.db

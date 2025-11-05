@@ -2,10 +2,15 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from "cors";
 import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import { MatchController } from './controllers/match.controller';
 import { ChatController } from './controllers/chat.controller';
+import { StreamController } from './controllers/stream.controller';
+import { streamService } from './services/stream.service';
 import { startMatchSyncCron } from './cron/sync-matches.cron';
+import { startStreamCleanupCron } from './cron/cleanup-streams.cron';
 import { config } from 'dotenv';
+import * as path from 'path';
 import './config/supabase'; // Initialize Supabase
 
 config();
@@ -14,14 +19,45 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT;
 
-app.use(bodyParser.json());
+// Initialize Socket.IO
+const io = new SocketIOServer(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(cors());
+
+// Serve static files for HLS streams
+const streamsStaticPath = path.join(process.cwd(), 'public', 'streams');
+console.log(`📁 Serving static streams from: ${streamsStaticPath}`);
+
+app.use('/streams', express.static(streamsStaticPath, {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.m3u8')) {
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            // Cache-Control: no-cache pour forcer le rechargement du playlist (normal pour HLS live)
+            res.setHeader('Cache-Control', 'no-cache');
+            // Access-Control-Allow-Origin pour permettre les requêtes cross-origin
+            res.setHeader('Access-Control-Allow-Origin', '*');
+        } else if (filePath.endsWith('.ts')) {
+            res.setHeader('Content-Type', 'video/mp2t');
+            // Les segments peuvent être mis en cache plus longtemps
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+    }
+}));
 
 const matchController = new MatchController();
 const chatController = new ChatController();
+const streamController = new StreamController();
 
 app.use('/matches', matchController.getRouter());
 app.use('/chat', chatController.getRouter());
+app.use('/stream', streamController.getRouter());
 
 app.get('/supabase-status', (req, res) => {
     res.json({ 
@@ -29,6 +65,68 @@ app.get('/supabase-status', (req, res) => {
         message: 'Supabase Chat service is running',
         realtime: true,
         port: PORT
+    });
+});
+
+// Socket.IO namespace for streaming
+const streamNamespace = io.of('/stream');
+
+streamNamespace.on('connection', (socket) => {
+    console.log(`📡 Client connected to /stream namespace: ${socket.id}`);
+
+    socket.on('stream:start', async (data: { streamKey: string }) => {
+        console.log(`🎬 Stream start requested for streamKey: ${data.streamKey}`);
+        console.log(`📋 Full data received:`, JSON.stringify(data));
+        if (!data || !data.streamKey) {
+            console.error('❌ stream:start received without streamKey');
+            console.error('❌ Data received:', data);
+            return;
+        }
+        console.log(`📋 About to call streamService.startStreaming(${data.streamKey})`);
+        try {
+            await streamService.startStreaming(data.streamKey, socket);
+            console.log(`✅ streamService.startStreaming called successfully`);
+        } catch (error) {
+            console.error(`❌ Error in streamService.startStreaming:`, error);
+        }
+    });
+
+    socket.on('stream:data', (data: { streamKey: string; chunk: Buffer | Uint8Array | ArrayBuffer }) => {
+        if (!data.streamKey) {
+            console.error('❌ stream:data received without streamKey');
+            return;
+        }
+        
+        let buffer: Buffer;
+        if (Buffer.isBuffer(data.chunk)) {
+            buffer = data.chunk;
+        } else if (data.chunk instanceof Uint8Array) {
+            buffer = Buffer.from(data.chunk);
+        } else if (data.chunk instanceof ArrayBuffer) {
+            buffer = Buffer.from(new Uint8Array(data.chunk));
+        } else {
+            console.error('❌ Invalid chunk type received');
+            return;
+        }
+        
+        streamService.handleStreamData(data.streamKey, buffer);
+    });
+
+    socket.on('stream:audio', (data: { streamKey: string; audioData: number[] }) => {
+        if (!data.streamKey || !data.audioData) {
+            return; // Skip silently if invalid
+        }
+        
+        streamService.handleStreamAudio(data.streamKey, data.audioData);
+    });
+
+    socket.on('stream:end', (data: { streamKey: string }) => {
+        console.log(`🛑 Stream end requested: ${data.streamKey}`);
+        // The stream will be ended via the REST API
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`📡 Client disconnected from /stream namespace: ${socket.id}`);
     });
 });
 
@@ -40,6 +138,7 @@ app.get('/', (req, res) => {
         endpoints: {
             matches: '/matches',
             chat: '/chat',
+            stream: '/stream',
             supabaseStatus: '/supabase-status'
         }
     });
@@ -50,7 +149,10 @@ server.listen(PORT, () => {
     console.log(`🔗 Supabase Realtime service connected`);
     console.log(`📡 Chat endpoints available at /chat`);
     console.log(`⚽ Match endpoints available at /matches`);
+    console.log(`📺 Stream endpoints available at /stream`);
+    console.log(`🎬 Socket.IO streaming namespace available at /stream`);
     console.log(`🌐 API available at http://localhost:${PORT}`);
     
     startMatchSyncCron();
+    startStreamCleanupCron();
 });

@@ -25,6 +25,7 @@ export class StreamService {
     private readonly streamsDir: string;
     private readonly baseUrl: string;
     private nextAudioPort: number = 10000; // Start from port 10000 for audio
+    private endingStreams: Set<string> = new Set(); // Track streams being ended to prevent multiple calls
 
     constructor() {
         this.streamsDir = path.join(process.cwd(), 'public', 'streams');
@@ -358,6 +359,15 @@ export class StreamService {
             });
 
             // Handle FFmpeg process events
+            // Handle FFmpeg process events
+            ffmpegProcess.stdin?.on('error', (error: any) => {
+                // Ignore EPIPE errors (broken pipe) - happens when FFmpeg closes
+                // This prevents unhandled error events that crash the server
+                if (error.code !== 'EPIPE') {
+                    console.error(`❌ FFmpeg stdin error for ${streamKey}:`, error);
+                }
+            });
+
             ffmpegProcess.on('error', (error) => {
                 console.error(`❌ FFmpeg spawn error for ${streamKey}:`, error);
                 console.error(`❌ Error message:`, error.message);
@@ -447,9 +457,20 @@ export class StreamService {
                                 queue.shift(); // Remove oldest
                             }
                         }
-                    } catch (error) {
-                        errorCount++;
-                        console.error(`❌ Error writing to audio socket for ${streamKey}:`, error);
+                    } catch (error: any) {
+                        // Ignore EPIPE errors (broken pipe) - happens when socket is closing
+                        // This prevents crashes when FFmpeg closes the connection
+                        if (error.code !== 'EPIPE') {
+                            errorCount++;
+                            console.error(`❌ Error writing to audio socket for ${streamKey}:`, error);
+                        }
+                        // Remove socket from list if broken
+                        const sockets = this.audioSockets.get(streamKey) || [];
+                        const index = sockets.indexOf(socket);
+                        if (index > -1) {
+                            sockets.splice(index, 1);
+                            this.audioSockets.set(streamKey, sockets);
+                        }
                     }
                 } else {
                     errorCount++;
@@ -493,8 +514,14 @@ export class StreamService {
                         ffmpegProcess.stdin.once('drain', () => {
                         });
                     }
-                } catch (error) {
-                    console.error(`❌ Error writing to FFmpeg stdin for ${streamKey}:`, error);
+                } catch (error: any) {
+                    // Ignore EPIPE errors (broken pipe) - happens when FFmpeg is closing
+                    // This prevents crashes when FFmpeg process is terminated
+                    if (error.code !== 'EPIPE') {
+                        console.error(`❌ Error writing to FFmpeg stdin for ${streamKey}:`, error);
+                    }
+                    // Remove process from map if pipe is broken
+                    this.ffmpegProcesses.delete(streamKey);
                 }
             } else {
                 console.warn(`⚠️ FFmpeg stdin not available for stream ${streamKey} (destroyed: ${ffmpegProcess.stdin?.destroyed})`);
@@ -509,6 +536,7 @@ export class StreamService {
      * End a stream
      */
     async endStream(request: EndStreamRequest): Promise<EndStreamResponse> {
+        let streamKey: string | null = null;
         try {
             console.log(`🛑 Ending stream: ${request.streamId}`);
 
@@ -528,12 +556,37 @@ export class StreamService {
                 };
             }
 
-            const streamKey = streamData.stream_key;
+            streamKey = streamData.stream_key;
+
+            // Ensure streamKey is valid
+            if (!streamKey) {
+                console.error('❌ Invalid streamKey');
+                return {
+                    success: false,
+                    error: 'Invalid streamKey'
+                };
+            }
+
+            // Prevent multiple calls to endStream for the same stream
+            if (this.endingStreams.has(streamKey)) {
+                console.warn(`⚠️ Stream ${streamKey} is already being ended`);
+                return {
+                    success: true
+                };
+            }
+
+            this.endingStreams.add(streamKey);
 
             // Stop FFmpeg process using streamKey
             const ffmpegProcess = this.ffmpegProcesses.get(streamKey);
             if (ffmpegProcess) {
                 if (ffmpegProcess.stdin && !ffmpegProcess.stdin.destroyed) {
+                    // Handle EPIPE errors silently to prevent crashes
+                    ffmpegProcess.stdin.on('error', (error: any) => {
+                        if (error.code !== 'EPIPE') {
+                            console.error(`❌ FFmpeg stdin error during cleanup for ${streamKey}:`, error);
+                        }
+                    });
                     ffmpegProcess.stdin.end();
                 }
                 ffmpegProcess.kill('SIGTERM');
@@ -563,6 +616,9 @@ export class StreamService {
             // Remove socket reference
             this.streamSockets.delete(streamKey);
 
+            // Remove from ending streams set
+            this.endingStreams.delete(streamKey);
+
             // Update database
             const { error } = await supabase
                 .from('live_streams')
@@ -588,6 +644,10 @@ export class StreamService {
 
         } catch (error) {
             console.error('❌ Error ending stream:', error);
+            // Clean up flag on error if streamKey was set
+            if (streamKey) {
+                this.endingStreams.delete(streamKey);
+            }
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'

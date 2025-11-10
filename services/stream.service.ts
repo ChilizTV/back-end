@@ -126,9 +126,6 @@ export class StreamService {
      */
     async startStreaming(streamKey: string, socket: Socket): Promise<void> {
         try {
-            console.log(`📺 Starting streaming for stream: ${streamKey}`);
-            console.log(`📊 Current FFmpeg processes: ${this.ffmpegProcesses.size}`);
-            console.log(`📊 Current socket connections: ${this.streamSockets.size}`);
 
             // Check if FFmpeg process already exists
             if (this.ffmpegProcesses.has(streamKey)) {
@@ -138,9 +135,6 @@ export class StreamService {
 
             const streamDir = path.join(this.streamsDir, streamKey);
             const playlistPath = path.join(streamDir, 'playlist.m3u8');
-
-            console.log(`📁 Stream directory: ${streamDir}`);
-            console.log(`📄 Playlist path: ${playlistPath}`);
 
             // Ensure directory exists
             if (!fs.existsSync(streamDir)) {
@@ -152,7 +146,6 @@ export class StreamService {
 
             // Store socket reference
             this.streamSockets.set(streamKey, socket);
-            console.log(`📡 Socket stored for streamKey: ${streamKey}`);
 
             // Create TCP server for audio (works on all platforms: Windows, macOS, Linux)
             let audioPort: number | null = null;
@@ -169,7 +162,6 @@ export class StreamService {
                     }
 
                     audioServer = net.createServer((socket) => {
-                        console.log(`🎤 Audio client (FFmpeg) connected for stream ${streamKey} on port ${audioPort}`);
                         
                         // Initialize audio queue for this stream
                         this.audioQueues.set(streamKey, []);
@@ -201,13 +193,6 @@ export class StreamService {
                                     }
                                 }
                             }
-                        });
-                        
-                        // Handle data from client (though we mostly write to it)
-                        socket.on('data', (data) => {
-                            // Audio data is written by server, not read from client
-                            // But log if FFmpeg sends something back (shouldn't happen)
-                            console.log(`🎤 [DEBUG] Received data from FFmpeg (unexpected): ${data.length} bytes`);
                         });
 
                         socket.on('end', () => {
@@ -322,23 +307,18 @@ export class StreamService {
 
             ffmpegArgs.push(playlistPath);
 
-            console.log(`📋 FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}`);
-
             // Spawn FFmpeg process
             const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
                 stdio: ['pipe', 'pipe', 'pipe']
             });
-
-            console.log(`🔧 FFmpeg process spawned (PID: ${ffmpegProcess.pid})`);
+            
             if (finalHasAudio && finalAudioPort !== null) {
-                console.log(`🎤 Waiting for FFmpeg to connect to audio TCP server on port ${finalAudioPort}...`);
                 
                 // Wait up to 5 seconds for FFmpeg to connect to audio TCP server
                 let ffmpegConnected = false;
                 const checkConnection = setInterval(() => {
                     const sockets = this.audioSockets.get(streamKey) || [];
                     if (sockets.length > 0) {
-                        console.log(`✅ FFmpeg connected to audio TCP server for ${streamKey}`);
                         ffmpegConnected = true;
                         clearInterval(checkConnection);
                     }
@@ -393,15 +373,10 @@ export class StreamService {
             // Store FFmpeg process
             this.ffmpegProcesses.set(streamKey, ffmpegProcess);
 
-            console.log(`✅ FFmpeg process started for ${streamKey}`);
-            console.log(`📁 Playlist will be created at: ${playlistPath}`);
-            console.log(`📊 Active FFmpeg processes: ${this.ffmpegProcesses.size}`);
-
             // Check if FFmpeg process started successfully after a short delay
             setTimeout(() => {
                 const process = this.ffmpegProcesses.get(streamKey);
                 if (process && !process.killed && process.pid) {
-                    console.log(`✅ FFmpeg process confirmed running for ${streamKey} (PID: ${process.pid})`);
                 } else {
                     console.warn(`⚠️ FFmpeg process may not have started correctly for ${streamKey}`);
                     console.warn(`⚠️ Process exists: ${!!process}, Killed: ${process?.killed}, PID: ${process?.pid}`);
@@ -410,15 +385,12 @@ export class StreamService {
 
             setTimeout(() => {
                 if (fs.existsSync(playlistPath)) {
-                    console.log(`✅ Playlist file created at: ${playlistPath}`);
                     const stats = fs.statSync(playlistPath);
-                    console.log(`📄 Playlist file size: ${stats.size} bytes`);
                 } else {
                     console.warn(`⚠️ Playlist file not yet created at: ${playlistPath}`);
                     // Check if directory exists
                     if (fs.existsSync(streamDir)) {
                         const files = fs.readdirSync(streamDir);
-                        console.log(`📁 Files in stream directory: ${files.join(', ')}`);
                     } else {
                         console.warn(`⚠️ Stream directory does not exist: ${streamDir}`);
                     }
@@ -442,10 +414,6 @@ export class StreamService {
             if (!audioSockets || audioSockets.length === 0) {
                 // No audio sockets connected yet (FFmpeg may not have connected)
                 // This is normal at the start, skip silently
-                // Log occasionally to debug
-                if (Math.random() < 0.01) {
-                    console.log(`🎤 [DEBUG] No audio sockets connected yet for ${streamKey}`);
-                }
                 return;
             }
 
@@ -473,8 +441,8 @@ export class StreamService {
                             queue.push(int16Buffer);
                             this.audioQueues.set(streamKey, queue);
                             
-                            // Limit queue size to prevent memory issues (max 100 buffers)
-                            if (queue.length > 100) {
+                            // Limit queue size to prevent memory issues (max 200 buffers)
+                            if (queue.length > 200) {
                                 console.warn(`⚠️ Audio queue too large (${queue.length} buffers) for ${streamKey}, dropping oldest`);
                                 queue.shift(); // Remove oldest
                             }
@@ -487,18 +455,6 @@ export class StreamService {
                     errorCount++;
                 }
             });
-            
-            // Log occasionally to debug
-            if (Math.random() < 0.01) {
-                console.log(`🎤 [DEBUG] Audio data received for ${streamKey}:`, {
-                    dataLength: audioData.length,
-                    bufferLength: int16Buffer.length,
-                    socketsConnected: audioSockets.length,
-                    writtenCount: writtenCount,
-                    pendingCount: pendingCount,
-                    errorCount: errorCount
-                });
-            }
             
             // Log warnings if there are issues
             if (errorCount > 0 && writtenCount === 0 && pendingCount === 0) {
@@ -644,7 +600,6 @@ export class StreamService {
      */
     async getActiveStreams(matchId: number): Promise<StreamListResponse> {
         try {
-            console.log(`📋 Fetching active streams for match ${matchId}`);
             
             const { data, error } = await supabase
                 .from('live_streams')
@@ -660,12 +615,6 @@ export class StreamService {
                     streams: [],
                     error: error.message
                 };
-            }
-
-            console.log(`✅ Found ${data?.length || 0} active streams for match ${matchId}`);
-            if (data && data.length > 0) {
-                console.log(`📊 Stream IDs: ${data.map(s => s.id).join(', ')}`);
-                console.log(`📊 Stream Keys: ${data.map(s => s.stream_key).join(', ')}`);
             }
 
             const streams: LiveStream[] = (data || []).map(row => ({

@@ -6,9 +6,12 @@ import { Server as SocketIOServer } from 'socket.io';
 import { MatchController } from './controllers/match.controller';
 import { ChatController } from './controllers/chat.controller';
 import { StreamController } from './controllers/stream.controller';
+import { WaitlistController } from './controllers/waitlist.controller';
+import { predictionController } from './controllers/prediction.controller';
 import { streamService } from './services/stream.service';
 import { startMatchSyncCron } from './cron/sync-matches.cron';
 import { startStreamCleanupCron } from './cron/cleanup-streams.cron';
+import { startPredictionSettlementCron } from './cron/settle-predictions.cron';
 import { config } from 'dotenv';
 import * as path from 'path';
 import './config/supabase'; // Initialize Supabase
@@ -54,10 +57,14 @@ app.use('/streams', express.static(streamsStaticPath, {
 const matchController = new MatchController();
 const chatController = new ChatController();
 const streamController = new StreamController();
+const waitlistController = new WaitlistController();
 
 app.use('/matches', matchController.getRouter());
 app.use('/chat', chatController.getRouter());
 app.use('/stream', streamController.getRouter());
+app.use('/waitlist', waitlistController.getRouter());
+
+app.use('/predictions', predictionController.getRouter());
 
 app.get('/supabase-status', (req, res) => {
     res.json({ 
@@ -150,9 +157,11 @@ server.listen(PORT, () => {
     console.log(`📡 Chat endpoints available at /chat`);
     console.log(`⚽ Match endpoints available at /matches`);
     console.log(`📺 Stream endpoints available at /stream`);
+    console.log(`🎯 Predictions endpoints available at /predictions`);
     console.log(`🎬 Socket.IO streaming namespace available at /stream`);
     console.log(`🌐 API available at http://localhost:${PORT}`);
     
     startMatchSyncCron();
     startStreamCleanupCron();
+    startPredictionSettlementCron();
 });

@@ -25,7 +25,7 @@ export class StreamService {
     private readonly streamsDir: string;
     private readonly baseUrl: string;
     private nextAudioPort: number = 10000; // Start from port 10000 for audio
-    private endingStreams: Set<string> = new Set(); // Track streams being ended to prevent multiple calls
+    private endingStreams: Set<string> = new Set();
 
     constructor() {
         this.streamsDir = path.join(process.cwd(), 'public', 'streams');
@@ -359,10 +359,7 @@ export class StreamService {
             });
 
             // Handle FFmpeg process events
-            // Handle FFmpeg process events
             ffmpegProcess.stdin?.on('error', (error: any) => {
-                // Ignore EPIPE errors (broken pipe) - happens when FFmpeg closes
-                // This prevents unhandled error events that crash the server
                 if (error.code !== 'EPIPE') {
                     console.error(`❌ FFmpeg stdin error for ${streamKey}:`, error);
                 }

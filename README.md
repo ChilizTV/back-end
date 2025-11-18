@@ -289,4 +289,4 @@ NODE_ENV=production npm start
 
 ## 📝 License
 
-AGPL-3.0 License
+AGPL-3.0 License 

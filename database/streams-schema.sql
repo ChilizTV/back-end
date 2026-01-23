@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS live_streams (
     match_id INTEGER NOT NULL,
     streamer_id TEXT NOT NULL,
     streamer_name TEXT NOT NULL,
+    streamer_wallet_address TEXT,
     stream_key TEXT UNIQUE NOT NULL,
     hls_playlist_url TEXT,
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'ended')),
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS live_streams (
 CREATE INDEX IF NOT EXISTS idx_live_streams_match_id ON live_streams(match_id);
 CREATE INDEX IF NOT EXISTS idx_live_streams_stream_key ON live_streams(stream_key);
 CREATE INDEX IF NOT EXISTS idx_live_streams_status ON live_streams(status);
+CREATE INDEX IF NOT EXISTS idx_live_streams_streamer_wallet_address ON live_streams(streamer_wallet_address);
 CREATE INDEX IF NOT EXISTS idx_live_streams_created_at ON live_streams(created_at DESC);
 
 -- =====================================================

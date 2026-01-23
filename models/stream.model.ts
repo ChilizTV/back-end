@@ -3,6 +3,7 @@ export interface LiveStream {
     matchId: number;
     streamerId: string;
     streamerName: string;
+    streamerWalletAddress?: string;
     streamKey: string;
     hlsPlaylistUrl?: string;
     status: 'active' | 'ended';
@@ -15,6 +16,7 @@ export interface CreateStreamRequest {
     matchId: number;
     streamerId: string;
     streamerName: string;
+    streamerWalletAddress?: string;
 }
 
 export interface CreateStreamResponse {

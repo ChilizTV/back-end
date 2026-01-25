@@ -19,9 +19,15 @@ CREATE TABLE IF NOT EXISTS matches (
     venue TEXT,
     referee TEXT,
     odds JSONB,
+    betting_contract_address TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- MIGRATION: Add betting_contract_address column
+-- Add betting_contract_address column if it doesn't exist (for existing databases)
+ALTER TABLE matches 
+ADD COLUMN IF NOT EXISTS betting_contract_address TEXT;
 
 -- =====================================================
 -- CHAT MESSAGES TABLE
@@ -67,6 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_matches_api_football_id ON matches(api_football_i
 CREATE INDEX IF NOT EXISTS idx_matches_match_date ON matches(match_date);
 CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status);
 CREATE INDEX IF NOT EXISTS idx_matches_league ON matches(league);
+CREATE INDEX IF NOT EXISTS idx_matches_betting_contract ON matches(betting_contract_address);
 
 -- Chat messages indexes
 CREATE INDEX IF NOT EXISTS idx_chat_messages_match_id ON chat_messages(match_id);

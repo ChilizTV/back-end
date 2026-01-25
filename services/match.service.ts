@@ -4,6 +4,7 @@ import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds, MatchWithOdds } from '
 import { SupabaseMatch, MatchSyncResult } from '../models/supabase-match.model';
 import axios from 'axios';
 import { config } from 'dotenv';
+import { bettingDeploymentService } from './betting-match-deployment.service';
 
 config();
 
@@ -567,7 +568,7 @@ export class MatchService {
     }
 
     /**
-     * Store matches in Supabase
+     * Store matches in Supabase and deploy betting contracts for new matches
      */
     async storeMatchesInSupabase(matches: ApiFootballMatch[], oddsData: ApiFootballOdds[]): Promise<ServiceResult<number>> {
         try {
@@ -581,9 +582,39 @@ export class MatchService {
                 }
             });
 
-            const matchesToInsert = matches.map(match => {
+            // Check which matches already exist to avoid deploying contracts for existing ones
+            const { data: existingMatches } = await supabase
+                .from('matches')
+                .select('api_football_id, betting_contract_address')
+                .in('api_football_id', matches.map(m => m.fixture.id));
+
+            const existingMatchIds = new Set(existingMatches?.map(m => m.api_football_id) || []);
+
+            const matchesToInsert = await Promise.all(matches.map(async match => {
                 const odds = oddsMap.get(match.fixture.id);
                 const extendedOdds = odds ? this.parseOdds(odds) : null;
+                const isNewMatch = !existingMatchIds.has(match.fixture.id);
+                
+                let bettingContractAddress: string | null = null;
+                
+                // Deploy betting contract only for new matches
+                if (isNewMatch) {
+                    try {
+                        console.log(`🎲 Deploying betting contract for new match: ${match.teams.home.name} vs ${match.teams.away.name}`);
+                        const matchName = `${match.teams.home.name} vs ${match.teams.away.name}`;
+                        const ownerAddress = bettingDeploymentService.getAdminAddress();
+                        
+                        bettingContractAddress = await bettingDeploymentService.deployFootballMatch(
+                            matchName,
+                            ownerAddress
+                        );
+                        
+                        console.log(`✅ Betting contract deployed at: ${bettingContractAddress}`);
+                    } catch (error) {
+                        console.error(`❌ Failed to deploy betting contract for match ${match.fixture.id}:`, error);
+                        // Continue without contract address - can be deployed later manually
+                    }
+                }
                 
                 return {
                     api_football_id: match.fixture.id,
@@ -597,9 +628,10 @@ export class MatchService {
                     season: match.league.season.toString(),
                     venue: match.fixture.venue?.name || null,
                     referee: match.referee || null,
-                    odds: extendedOdds
+                    odds: extendedOdds,
+                    betting_contract_address: bettingContractAddress
                 };
-            });
+            }));
 
             // Use upsert to handle duplicates
             const { data, error } = await supabase

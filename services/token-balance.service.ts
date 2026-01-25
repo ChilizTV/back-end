@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { ServiceResult } from './service.result';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, defineChain } from 'viem';
 import { chiliz } from 'viem/chains';
-import { chilizConfig, ChilizToken } from '../config/chiliz.config';
+import { chilizConfig, ChilizToken, networkType } from '../config/chiliz.config';
 
 export interface TokenBalance {
     token: ChilizToken;
@@ -27,6 +27,29 @@ const ERC20_ABI = [
     }
 ] as const;
 
+// Define Spicy testnet chain for viem
+const spicy = defineChain({
+    id: 88882,
+    name: 'Chiliz Spicy Testnet',
+    nativeCurrency: {
+        decimals: 18,
+        name: 'CHZ',
+        symbol: 'CHZ',
+    },
+    rpcUrls: {
+        default: {
+            http: ['https://spicy-rpc.chiliz.com'],
+        },
+    },
+    blockExplorers: {
+        default: {
+            name: 'Spicy Explorer',
+            url: 'https://testnet.chiliscan.com',
+        },
+    },
+    testnet: true,
+});
+
 export class TokenBalanceService {
     private readonly FEATURED_THRESHOLD = 50;
     private client: any;
@@ -35,12 +58,15 @@ export class TokenBalanceService {
     constructor() {
         this.SUPPORTED_TOKENS = chilizConfig.tokens;
         
+        // Use testnet (spicy) or mainnet (chiliz) based on environment
+        const chain = networkType === 'testnet' ? spicy : chiliz;
+        
         this.client = createPublicClient({
-            chain: chiliz,
+            chain,
             transport: http(chilizConfig.rpcUrl)
         });
         
-        console.log(`🔧 TokenBalanceService initialized with ${this.SUPPORTED_TOKENS.length} tokens on ${chilizConfig.rpcUrl}`);
+        console.log(`🔧 TokenBalanceService initialized with ${this.SUPPORTED_TOKENS.length} tokens on ${networkType} (${chain.name}) - ${chilizConfig.rpcUrl}`);
     }
 
     private async getTokenBalance(walletAddress: string, tokenAddress: string): Promise<number> {

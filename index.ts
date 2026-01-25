@@ -8,7 +8,9 @@ import { ChatController } from './controllers/chat.controller';
 import { StreamController } from './controllers/stream.controller';
 import { WaitlistController } from './controllers/waitlist.controller';
 import { predictionController } from './controllers/prediction.controller';
+import { StreamWalletController } from './controllers/stream-wallet.controller';
 import { streamService } from './services/stream.service';
+import { streamWalletService } from './services/stream-wallet.service';
 import { startMatchSyncCron } from './cron/sync-matches.cron';
 import { startStreamCleanupCron } from './cron/cleanup-streams.cron';
 import { startPredictionSettlementCron } from './cron/settle-predictions.cron';
@@ -58,11 +60,13 @@ const matchController = new MatchController();
 const chatController = new ChatController();
 const streamController = new StreamController();
 const waitlistController = new WaitlistController();
+const streamWalletController = new StreamWalletController();
 
 app.use('/matches', matchController.getRouter());
 app.use('/chat', chatController.getRouter());
 app.use('/stream', streamController.getRouter());
 app.use('/waitlist', waitlistController.getRouter());
+app.use('/stream-wallet', streamWalletController.router);
 
 app.use('/predictions', predictionController.getRouter());
 
@@ -157,6 +161,7 @@ server.listen(PORT, () => {
     console.log(`📡 Chat endpoints available at /chat`);
     console.log(`⚽ Match endpoints available at /matches`);
     console.log(`📺 Stream endpoints available at /stream`);
+    console.log(`💰 Stream Wallet endpoints available at /stream-wallet`);
     console.log(`🎯 Predictions endpoints available at /predictions`);
     console.log(`🎬 Socket.IO streaming namespace available at /stream`);
     console.log(`🌐 API available at http://localhost:${PORT}`);
@@ -164,4 +169,10 @@ server.listen(PORT, () => {
     startMatchSyncCron();
     startStreamCleanupCron();
     startPredictionSettlementCron();
+    
+    // Start blockchain event indexing for donations and subscriptions
+    console.log('🔍 Starting blockchain event indexing...');
+    streamWalletService.startEventIndexing().catch(error => {
+        console.error('❌ Failed to start event indexing:', error);
+    });
 });

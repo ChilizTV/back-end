@@ -17,6 +17,7 @@ const FACTORY_ADDRESS = (process.env.STREAM_WALLET_FACTORY_ADDRESS ||
 // Event signatures from StreamWalletFactory
 const DONATION_EVENT = parseAbiItem('event DonationProcessed(address indexed streamer, address indexed donor, uint256 amount, string message)');
 const SUBSCRIPTION_EVENT = parseAbiItem('event SubscriptionProcessed(address indexed streamer, address indexed subscriber, uint256 amount)');
+const WALLET_CREATED_EVENT = parseAbiItem('event StreamWalletCreated(address indexed streamer, address indexed wallet)');
 
 // Define Spicy testnet chain for viem
 const spicy = defineChain({
@@ -124,7 +125,15 @@ export class StreamWalletService {
                 toBlock
             });
 
-            console.log(`📊 Found ${donationLogs.length} donations and ${subscriptionLogs.length} subscriptions`);
+            // Get wallet created events
+            const walletCreatedLogs = await this.publicClient.getLogs({
+                address: FACTORY_ADDRESS,
+                event: WALLET_CREATED_EVENT,
+                fromBlock,
+                toBlock
+            });
+
+            console.log(`📊 Found ${donationLogs.length} donations, ${subscriptionLogs.length} subscriptions, and ${walletCreatedLogs.length} wallet creations`);
 
             // Index all events
             for (const log of donationLogs) {
@@ -133,6 +142,10 @@ export class StreamWalletService {
 
             for (const log of subscriptionLogs) {
                 await this.indexSubscriptionEvent(log as any);
+            }
+
+            for (const log of walletCreatedLogs) {
+                await this.indexWalletCreatedEvent(log as any);
             }
 
             this.lastIndexedBlock = toBlock;
@@ -169,6 +182,68 @@ export class StreamWalletService {
                 }
             }
         });
+
+        // Watch wallet creations
+        this.publicClient.watchEvent({
+            address: FACTORY_ADDRESS,
+            event: WALLET_CREATED_EVENT,
+            onLogs: async (logs) => {
+                for (const log of logs) {
+                    await this.indexWalletCreatedEvent(log as any);
+                }
+            }
+        });
+    }
+
+    /**
+     * Index a wallet created event
+     */
+    async indexWalletCreatedEvent(log: Log): Promise<void> {
+        try {
+            const { args, transactionHash } = log as any;
+            
+            if (!args || !transactionHash) {
+                console.error('❌ Invalid wallet created event log:', log);
+                return;
+            }
+
+            const { streamer, wallet } = args;
+
+            // Check if already indexed
+            const { data: existing } = await supabase
+                .from('stream_wallets')
+                .select('id')
+                .eq('transaction_hash', transactionHash)
+                .single();
+
+            if (existing) {
+                console.log(`⏭️ Wallet creation ${transactionHash} already indexed`);
+                return;
+            }
+
+            // Insert wallet creation record
+            const { error } = await supabase
+                .from('stream_wallets')
+                .insert({
+                    streamer_address: streamer.toLowerCase(),
+                    wallet_address: wallet.toLowerCase(),
+                    transaction_hash: transactionHash
+                });
+
+            if (error) {
+                // If it's a duplicate key error, it's okay (already indexed)
+                if (error.code === '23505') {
+                    console.log(`⏭️ Wallet ${wallet} for streamer ${streamer} already exists`);
+                } else {
+                    console.error('❌ Error indexing wallet creation:', error);
+                }
+                return;
+            }
+
+            console.log(`✅ Indexed wallet creation: ${wallet} for streamer ${streamer}`);
+        } catch (error) {
+            console.error('❌ Error in indexWalletCreatedEvent:', error);
+        }
     }
 
     /**

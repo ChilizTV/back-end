@@ -82,13 +82,13 @@ export class StreamController {
                 return;
             }
 
-            console.log(`📋 GET /stream - Fetching streams for match ${matchId}`);
-
             try {
                 const result = await streamService.getActiveStreams(parseInt(matchId as string));
 
                 res.status(200).json(result);
-                console.log(`✅ Found ${result.streams.length} active streams for match ${matchId}`);
+                if (result.streams.length > 0) {
+                    console.log(`✅ GET /stream - Found ${result.streams.length} active stream(s) for match ${matchId}`);
+                }
             } catch (error) {
                 throw error;
             }

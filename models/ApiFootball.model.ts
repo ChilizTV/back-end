@@ -174,4 +174,5 @@ export interface MatchWithOdds {
     venue: string | null;
     referee: string | null;
     odds: ExtendedOdds | null;
+    betting_contract_address?: string | null;
 }

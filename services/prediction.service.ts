@@ -36,6 +36,19 @@ export class PredictionService {
                 status: PredictionStatus.PENDING
             };
 
+            // Vérifier si une prédiction existe déjà pour ce hash (éviter doublons)
+            const { data: existing } = await supabase
+                .from('predictions')
+                .select('*')
+                .eq('transaction_hash', data.transactionHash)
+                .limit(1)
+                .maybeSingle();
+
+            if (existing) {
+                console.log('⏭️ Prediction already exists for this transaction, skipping');
+                return ServiceResult.success(this.mapPrediction(existing));
+            }
+
             const { data: prediction, error } = await supabase
                 .from('predictions')
                 .insert(predictionData)
@@ -68,15 +81,26 @@ export class PredictionService {
         try {
             console.log(`📜 Fetching predictions for user ${userId}, wallet ${walletAddress}`);
 
-            const { data: predictions, error } = await supabase
+            const wallet = walletAddress.toLowerCase();
+            let { data: predictions, error } = await supabase
                 .from('predictions')
                 .select('*')
                 .eq('user_id', userId)
-                .eq('wallet_address', walletAddress)
+                .eq('wallet_address', wallet)
                 .order('placed_at', { ascending: false })
                 .range(offset, offset + limit - 1);
 
-            if (error) {
+            if (!predictions?.length) {
+                const { data: walletPreds } = await supabase
+                    .from('predictions')
+                    .select('*')
+                    .eq('wallet_address', wallet)
+                    .order('placed_at', { ascending: false })
+                    .range(offset, offset + limit - 1);
+                predictions = walletPreds;
+            }
+
+            if (error && !predictions) {
                 console.error('❌ Error fetching predictions:', error);
                 return ServiceResult.failed<Prediction[]>();
             }
@@ -101,37 +125,50 @@ export class PredictionService {
                 .from('user_prediction_stats')
                 .select('*')
                 .eq('user_id', userId)
-                .eq('wallet_address', walletAddress)
+                .eq('wallet_address', walletAddress.toLowerCase())
                 .single();
 
-            if (error) {
-                // If no stats found, return zeros
-                if (error.code === 'PGRST116') {
-                    return ServiceResult.success({
-                        userId,
-                        walletAddress,
-                        totalPredictions: 0,
-                        totalWins: 0,
-                        totalLosses: 0,
-                        activePredictions: 0,
-                        winRate: 0
-                    });
-                }
-
-                console.error('❌ Error fetching stats:', error);
-                return ServiceResult.failed<UserPredictionStats>();
+            if (!error && stats) {
+                return ServiceResult.success({
+                    userId: stats.user_id,
+                    walletAddress: stats.wallet_address,
+                    totalPredictions: stats.total_predictions || 0,
+                    totalWins: stats.total_wins || 0,
+                    totalLosses: stats.total_losses || 0,
+                    activePredictions: stats.active_predictions || 0,
+                    winRate: stats.win_rate || 0
+                });
             }
 
-            console.log('✅ Stats fetched successfully');
+            // Fallback: stats from blockchain indexer use user_id = 'wallet:' + address
+            const walletUserId = 'wallet:' + walletAddress.toLowerCase();
+            const { data: walletStats } = await supabase
+                .from('user_prediction_stats')
+                .select('*')
+                .eq('user_id', walletUserId)
+                .eq('wallet_address', walletAddress.toLowerCase())
+                .single();
+
+            if (walletStats) {
+                return ServiceResult.success({
+                    userId,
+                    walletAddress: walletStats.wallet_address,
+                    totalPredictions: walletStats.total_predictions || 0,
+                    totalWins: walletStats.total_wins || 0,
+                    totalLosses: walletStats.total_losses || 0,
+                    activePredictions: walletStats.active_predictions || 0,
+                    winRate: walletStats.win_rate || 0
+                });
+            }
 
             return ServiceResult.success({
-                userId: stats.user_id,
-                walletAddress: stats.wallet_address,
-                totalPredictions: stats.total_predictions || 0,
-                totalWins: stats.total_wins || 0,
-                totalLosses: stats.total_losses || 0,
-                activePredictions: stats.active_predictions || 0,
-                winRate: stats.win_rate || 0
+                userId,
+                walletAddress,
+                totalPredictions: 0,
+                totalWins: 0,
+                totalLosses: 0,
+                activePredictions: 0,
+                winRate: 0
             });
         } catch (error: any) {
             console.error('❌ Exception fetching stats:', error);

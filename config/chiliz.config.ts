@@ -200,7 +200,7 @@ const MAINNET_TOKENS: ChilizToken[] = [
 ];
 
 const TESTNET_CONFIG: ChilizNetworkConfig = {
-    rpcUrl: 'https://spicy-rpc.chiliz.com',
+    rpcUrl: 'https://sepolia.base.org',
     tokens: TESTNET_TOKENS
 };
 

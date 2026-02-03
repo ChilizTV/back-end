@@ -685,7 +685,8 @@ export class MatchService {
                 season: match.season,
                 venue: match.venue,
                 referee: match.referee,
-                odds: match.odds
+                odds: match.odds,
+                betting_contract_address: match.betting_contract_address ?? null
             }));
 
             console.log(`✅ Retrieved ${matches.length} matches from Supabase`);

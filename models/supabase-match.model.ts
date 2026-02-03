@@ -15,6 +15,7 @@ export interface SupabaseMatch {
     venue: string | null;
     referee: string | null;
     odds: ExtendedOdds | null;
+    betting_contract_address?: string | null;
     created_at: string;
     updated_at: string;
 }

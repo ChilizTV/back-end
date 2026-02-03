@@ -19,37 +19,44 @@ const DONATION_EVENT = parseAbiItem('event DonationProcessed(address indexed str
 const SUBSCRIPTION_EVENT = parseAbiItem('event SubscriptionProcessed(address indexed streamer, address indexed subscriber, uint256 amount)');
 const WALLET_CREATED_EVENT = parseAbiItem('event StreamWalletCreated(address indexed streamer, address indexed wallet)');
 
-// Define Spicy testnet chain for viem
-const spicy = defineChain({
-    id: 88882,
-    name: 'Chiliz Spicy Testnet',
+// Define Base Sepolia chain for viem
+const baseSepolia = defineChain({
+    id: 84532,
+    name: 'Base Sepolia',
     nativeCurrency: {
         decimals: 18,
-        name: 'CHZ',
-        symbol: 'CHZ',
+        name: 'Ether',
+        symbol: 'ETH',
     },
     rpcUrls: {
         default: {
-            http: ['https://spicy-rpc.chiliz.com'],
+            http: ['https://sepolia.base.org'],
         },
     },
     blockExplorers: {
         default: {
-            name: 'Spicy Explorer',
-            url: 'https://testnet.chiliscan.com',
+            name: 'BaseScan',
+            url: 'https://sepolia.basescan.org',
         },
     },
     testnet: true,
 });
 
+// Polling interval in ms (Base Sepolia ~2s/block, we poll every 6s)
+const POLLING_INTERVAL_MS = 6000;
+// Interval for checking expired subscriptions (every 60s)
+const EXPIRY_CHECK_INTERVAL_MS = 60000;
+
 export class StreamWalletService {
     private publicClient;
     private isIndexing = false;
     private lastIndexedBlock: bigint = BigInt(0);
+    private pollingTimer: ReturnType<typeof setInterval> | null = null;
+    private expiryCheckTimer: ReturnType<typeof setInterval> | null = null;
 
     constructor() {
-        // Use testnet (spicy) or mainnet (chiliz) based on environment
-        const chain = networkType === 'testnet' ? spicy : chiliz;
+        // Use testnet (baseSepolia) or mainnet (chiliz) based on environment
+        const chain = networkType === 'testnet' ? baseSepolia : chiliz;
         
         // Initialize viem public client for reading blockchain data
         this.publicClient = createPublicClient({
@@ -90,8 +97,11 @@ export class StreamWalletService {
             // Index historical events first
             await this.indexHistoricalEvents();
 
-            // Watch for new events
-            this.watchNewEvents();
+            // Start polling for new real-time events
+            this.startPollingNewEvents();
+
+            // Start periodic check for expired subscriptions
+            this.startExpiredSubscriptionsCheck();
         } catch (error) {
             console.error('❌ Error starting event indexing:', error);
             this.isIndexing = false;
@@ -156,43 +166,125 @@ export class StreamWalletService {
     }
 
     /**
-     * Watch for new events in real-time
+     * Polling to capture new events in real-time.
+     * watchEvent with HTTP does not work well (eth_newFilter not supported by most public RPCs).
+     * Polling with getLogs is reliable and works with any RPC.
      */
-    private watchNewEvents(): void {
-        console.log('👀 Watching for new events...');
+    private startPollingNewEvents(): void {
+        console.log(`👀 Polling for new events every ${POLLING_INTERVAL_MS / 1000}s...`);
 
-        // Watch donations
-        this.publicClient.watchEvent({
-            address: FACTORY_ADDRESS,
-            event: DONATION_EVENT,
-            onLogs: async (logs) => {
-                for (const log of logs) {
+        this.pollingTimer = setInterval(async () => {
+            try {
+                const currentBlock = await this.publicClient.getBlockNumber();
+                if (currentBlock <= this.lastIndexedBlock) return;
+
+                const fromBlock = this.lastIndexedBlock + BigInt(1);
+                const toBlock = currentBlock;
+
+                const [donationLogs, subscriptionLogs, walletCreatedLogs] = await Promise.all([
+                    this.publicClient.getLogs({
+                        address: FACTORY_ADDRESS,
+                        event: DONATION_EVENT,
+                        fromBlock,
+                        toBlock
+                    }),
+                    this.publicClient.getLogs({
+                        address: FACTORY_ADDRESS,
+                        event: SUBSCRIPTION_EVENT,
+                        fromBlock,
+                        toBlock
+                    }),
+                    this.publicClient.getLogs({
+                        address: FACTORY_ADDRESS,
+                        event: WALLET_CREATED_EVENT,
+                        fromBlock,
+                        toBlock
+                    })
+                ]);
+
+                const totalNew = donationLogs.length + subscriptionLogs.length + walletCreatedLogs.length;
+                if (totalNew > 0) {
+                    console.log(`📥 ${totalNew} new event(s) detected (blocks ${fromBlock}-${toBlock})`);
+                }
+
+                for (const log of donationLogs) {
                     await this.indexDonationEvent(log as any);
                 }
-            }
-        });
-
-        // Watch subscriptions
-        this.publicClient.watchEvent({
-            address: FACTORY_ADDRESS,
-            event: SUBSCRIPTION_EVENT,
-            onLogs: async (logs) => {
-                for (const log of logs) {
+                for (const log of subscriptionLogs) {
                     await this.indexSubscriptionEvent(log as any);
                 }
-            }
-        });
-
-        // Watch wallet creations
-        this.publicClient.watchEvent({
-            address: FACTORY_ADDRESS,
-            event: WALLET_CREATED_EVENT,
-            onLogs: async (logs) => {
-                for (const log of logs) {
+                for (const log of walletCreatedLogs) {
                     await this.indexWalletCreatedEvent(log as any);
                 }
+
+                this.lastIndexedBlock = toBlock;
+            } catch (error) {
+                console.error('❌ Error polling events:', error);
             }
-        });
+        }, POLLING_INTERVAL_MS);
+    }
+
+    /**
+     * Stop polling (useful for tests or graceful shutdown)
+     */
+    stopEventIndexing(): void {
+        if (this.pollingTimer) {
+            clearInterval(this.pollingTimer);
+            this.pollingTimer = null;
+        }
+        if (this.expiryCheckTimer) {
+            clearInterval(this.expiryCheckTimer);
+            this.expiryCheckTimer = null;
+        }
+        this.isIndexing = false;
+        console.log('⏹️ Event indexing stopped');
+    }
+
+    /**
+     * Periodically check and update expired subscriptions in the database
+     */
+    private startExpiredSubscriptionsCheck(): void {
+        console.log(`⏰ Expired subscriptions check every ${EXPIRY_CHECK_INTERVAL_MS / 1000}s`);
+
+        this.expiryCheckTimer = setInterval(async () => {
+            try {
+                await this.updateExpiredSubscriptions();
+            } catch (error) {
+                console.error('❌ Error updating expired subscriptions:', error);
+            }
+        }, EXPIRY_CHECK_INTERVAL_MS);
+
+        // Run once immediately on startup
+        this.updateExpiredSubscriptions().catch(err =>
+            console.error('❌ Error on initial expiry check:', err)
+        );
+    }
+
+    /**
+     * Update subscriptions that have passed their expiry_time to status 'expired'
+     */
+    private async updateExpiredSubscriptions(): Promise<void> {
+        try {
+            const now = new Date().toISOString();
+
+            const { data, error } = await supabase
+                .from('subscriptions')
+                .update({ status: 'expired' })
+                .eq('status', 'active')
+                .lt('expiry_time', now)
+                .select('id');
+
+            if (error) {
+                console.error('❌ Error updating expired subscriptions:', error);
+                return;
+            }
+
+            if (data && data.length > 0) {
+                console.log(`📅 Marked ${data.length} subscription(s) as expired`);
+            }
+        } catch (err) {
+            console.error('❌ Error in updateExpiredSubscriptions:', err);
+        }
     }
 
     /**
@@ -304,6 +396,20 @@ export class StreamWalletService {
                 console.error('❌ Error inserting donation:', error);
             } else {
                 console.log(`✅ Indexed donation: ${transactionHash.slice(0, 10)}... (${(Number(amountBigInt) / 1e18).toFixed(4)} CHZ)`);
+                let matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
+                if (!matchId && networkType === 'testnet') {
+                    matchId = 1;
+                    console.log(`📋 No stream found for streamer ${streamer}, using default match 1 for chat message`);
+                }
+                if (matchId) {
+                    await this.insertChatMessageForStreamerEvent(
+                        matchId,
+                        'donation',
+                        donor.toLowerCase(),
+                        (Number(amountBigInt) / 1e18).toString(),
+                        message || undefined
+                    );
+                }
             }
         } catch (error) {
             console.error('❌ Error indexing donation event:', error);
@@ -376,9 +482,120 @@ export class StreamWalletService {
                 console.error('❌ Error inserting subscription:', error);
             } else {
                 console.log(`✅ Indexed subscription: ${transactionHash.slice(0, 10)}... (${(Number(amountBigInt) / 1e18).toFixed(4)} CHZ)`);
+                let matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
+                if (!matchId && networkType === 'testnet') {
+                    matchId = 1;
+                    console.log(`📋 No stream found for streamer ${streamer}, using default match 1 for chat message`);
+                }
+                if (matchId) {
+                    await this.insertChatMessageForStreamerEvent(
+                        matchId,
+                        'subscription',
+                        subscriber.toLowerCase(),
+                        (Number(amountBigInt) / 1e18).toString()
+                    );
+                }
             }
         } catch (error) {
             console.error('❌ Error indexing subscription event:', error);
+        }
+    }
+
+    /**
+     * Get match_id for a streamer (from their active or most recent stream)
+     */
+    private async getMatchIdForStreamer(streamerAddress: string, streamWalletAddress: string | null): Promise<number | null> {
+        try {
+            const addresses = [streamerAddress.toLowerCase()];
+            if (streamWalletAddress) {
+                addresses.push(streamWalletAddress.toLowerCase());
+            }
+
+            const { data, error } = await supabase
+                .from('live_streams')
+                .select('match_id')
+                .in('streamer_wallet_address', addresses)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error || !data) return null;
+            return data.match_id;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Get username from wallet address (from chat_messages or predictions).
+     * Uses ilike for case-insensitive match (wallet can be stored as checksummed or lowercase).
+     */
+    private async getUsernameForWallet(walletAddress: string): Promise<string | null> {
+        try {
+            // Normalize: Ethereum addresses - use lowercase for consistent ilike pattern
+            const addrPattern = walletAddress.toLowerCase();
+
+            const { data: chatMessages } = await supabase
+                .from('chat_messages')
+                .select('username')
+                .ilike('wallet_address', addrPattern)
+                .not('username', 'eq', 'System')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (chatMessages?.[0]?.username) return chatMessages[0].username;
+
+            const { data: predRows } = await supabase
+                .from('predictions')
+                .select('username')
+                .ilike('wallet_address', addrPattern)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            return predRows?.[0]?.username ?? null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Insert a gold donation/subscription message into the chat
+     */
+    private async insertChatMessageForStreamerEvent(
+        matchId: number,
+        type: 'donation' | 'subscription',
+        userAddress: string,
+        amount: string,
+        extraMessage?: string
+    ): Promise<void> {
+        try {
+            const displayName = await this.getUsernameForWallet(userAddress)
+                ?? `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+            const amountFormatted = parseFloat(amount).toFixed(4);
+            const message = type === 'donation'
+                ? `🎁 ${displayName} donated ${amountFormatted} CHZ${extraMessage ? `: "${extraMessage}"` : ''}`
+                : `⭐ ${displayName} subscribed for ${amountFormatted} CHZ`;
+
+            const { error } = await supabase
+                .from('chat_messages')
+                .insert({
+                    match_id: matchId,
+                    user_id: 'system',
+                    username: 'System',
+                    message,
+                    message_type: 'system',
+                    system_type: type,
+                    wallet_address: userAddress,
+                    created_at: new Date().toISOString()
+                });
+
+            if (error) {
+                console.error(`❌ Failed to insert chat message for ${type}:`, error.message);
+            } else {
+                console.log(`💬 Chat message posted for ${type} (match ${matchId})`);
+            }
+        } catch (err) {
+            console.error(`❌ Error inserting chat message for ${type}:`, err);
         }
     }
 

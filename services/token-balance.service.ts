@@ -27,24 +27,24 @@ const ERC20_ABI = [
     }
 ] as const;
 
-// Define Spicy testnet chain for viem
-const spicy = defineChain({
-    id: 88882,
-    name: 'Chiliz Spicy Testnet',
+// Define Base Sepolia chain for viem
+const baseSepolia = defineChain({
+    id: 84532,
+    name: 'Base Sepolia',
     nativeCurrency: {
         decimals: 18,
-        name: 'CHZ',
-        symbol: 'CHZ',
+        name: 'Ether',
+        symbol: 'ETH',
     },
     rpcUrls: {
         default: {
-            http: ['https://spicy-rpc.chiliz.com'],
+            http: ['https://sepolia.base.org'],
         },
     },
     blockExplorers: {
         default: {
-            name: 'Spicy Explorer',
-            url: 'https://testnet.chiliscan.com',
+            name: 'BaseScan',
+            url: 'https://sepolia.basescan.org',
         },
     },
     testnet: true,
@@ -58,8 +58,8 @@ export class TokenBalanceService {
     constructor() {
         this.SUPPORTED_TOKENS = chilizConfig.tokens;
         
-        // Use testnet (spicy) or mainnet (chiliz) based on environment
-        const chain = networkType === 'testnet' ? spicy : chiliz;
+        // Use testnet (baseSepolia) or mainnet (chiliz) based on environment
+        const chain = networkType === 'testnet' ? baseSepolia : chiliz;
         
         this.client = createPublicClient({
             chain,

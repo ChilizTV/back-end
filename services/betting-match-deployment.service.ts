@@ -8,24 +8,24 @@ const FACTORY_ADDRESS = (process.env.BETTING_MATCH_FACTORY_ADDRESS ||
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
 const ADMIN_ADDRESS = process.env.ADMIN_ADDRESS as `0x${string}`;
 
-// Define Spicy testnet chain for viem
-const spicy = defineChain({
-    id: 88882,
-    name: 'Chiliz Spicy Testnet',
+// Define Base Sepolia chain for viem
+const baseSepolia = defineChain({
+    id: 84532,
+    name: 'Base Sepolia',
     nativeCurrency: {
         decimals: 18,
-        name: 'CHZ',
-        symbol: 'CHZ',
+        name: 'Ether',
+        symbol: 'ETH',
     },
     rpcUrls: {
         default: {
-            http: ['https://spicy-rpc.chiliz.com'],
+            http: ['https://sepolia.base.org'],
         },
     },
     blockExplorers: {
         default: {
-            name: 'Spicy Explorer',
-            url: 'https://testnet.chiliscan.com',
+            name: 'BaseScan',
+            url: 'https://sepolia.basescan.org',
         },
     },
     testnet: true,
@@ -64,8 +64,8 @@ export class BettingMatchDeploymentService {
             throw new Error('ADMIN_PRIVATE_KEY environment variable is required');
         }
         
-        // Use testnet (spicy) or mainnet (chiliz) based on environment
-        const chain = networkType === 'testnet' ? spicy : chiliz;
+        // Use testnet (baseSepolia) or mainnet (chiliz) based on environment
+        const chain = networkType === 'testnet' ? baseSepolia : chiliz;
         const account = privateKeyToAccount(ADMIN_PRIVATE_KEY);
         
         this.walletClient = createWalletClient({

@@ -11,6 +11,7 @@ import { predictionController } from './controllers/prediction.controller';
 import { StreamWalletController } from './controllers/stream-wallet.controller';
 import { streamService } from './services/stream.service';
 import { streamWalletService } from './services/stream-wallet.service';
+import { bettingEventIndexerService } from './services/betting-event-indexer.service';
 import { startMatchSyncCron } from './cron/sync-matches.cron';
 import { startStreamCleanupCron } from './cron/cleanup-streams.cron';
 import { startPredictionSettlementCron } from './cron/settle-predictions.cron';
@@ -174,5 +175,11 @@ server.listen(PORT, () => {
     console.log('🔍 Starting blockchain event indexing...');
     streamWalletService.startEventIndexing().catch(error => {
         console.error('❌ Failed to start event indexing:', error);
+    });
+
+    // Start betting event indexing (BetPlaced → predictions + chat)
+    console.log('🎯 Starting betting event indexing...');
+    bettingEventIndexerService.startEventIndexing().catch(error => {
+        console.error('❌ Failed to start betting event indexing:', error);
     });
 });

@@ -44,13 +44,13 @@ app.use('/streams', express.static(streamsStaticPath, {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.m3u8')) {
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-            // Cache-Control: no-cache pour forcer le rechargement du playlist (normal pour HLS live)
+            // Cache-Control: no-cache to force playlist reload (normal for HLS live)
             res.setHeader('Cache-Control', 'no-cache');
-            // Access-Control-Allow-Origin pour permettre les requêtes cross-origin
+            // Access-Control-Allow-Origin for cross-origin requests
             res.setHeader('Access-Control-Allow-Origin', '*');
         } else if (filePath.endsWith('.ts')) {
             res.setHeader('Content-Type', 'video/mp2t');
-            // Les segments peuvent être mis en cache plus longtemps
+            // Segments can be cached longer
             res.setHeader('Cache-Control', 'public, max-age=3600');
             res.setHeader('Access-Control-Allow-Origin', '*');
         }

@@ -4,7 +4,7 @@ import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds, MatchWithOdds } from '
 import { SupabaseMatch, MatchSyncResult } from '../models/supabase-match.model';
 import axios from 'axios';
 import { config } from 'dotenv';
-import { bettingDeploymentService } from './betting-match-deployment.service';
+import { bettingDeploymentService, MarketSetupOdds } from './betting-match-deployment.service';
 
 config();
 
@@ -610,6 +610,16 @@ export class MatchService {
                         );
                         
                         console.log(`✅ Betting contract deployed at: ${bettingContractAddress}`);
+                        
+                        // Configure markets with API odds (WINNER, GOALS_TOTAL, BOTH_SCORE) and open them
+                        const marketOdds = this.buildMarketOddsFromApi(extendedOdds);
+                        if (marketOdds) {
+                            const mw = marketOdds;
+                            console.log(`💰 API odds applied: 1X2 ${mw.homeWin ?? '-'}/${mw.draw ?? '-'}/${mw.awayWin ?? '-'} | O2.5 ${mw.over25 ?? '-'} | BTTS ${mw.bttsYes ?? '-'}`);
+                        } else {
+                            console.log(`💰 Using default odds (API unavailable)`);
+                        }
+                        await bettingDeploymentService.setupDefaultMarkets(bettingContractAddress, marketOdds);
                     } catch (error) {
                         console.error(`❌ Failed to deploy betting contract for match ${match.fixture.id}:`, error);
                         // Continue without contract address - can be deployed later manually
@@ -806,6 +816,25 @@ export class MatchService {
             console.error('❌ Error syncing matches:', error);
             return ServiceResult.failed();
         }
+    }
+
+    /**
+     * Build market odds from API data.
+     * Uses available odds (even partial) or undefined for defaults.
+     */
+    private buildMarketOddsFromApi(extendedOdds: ExtendedOdds | null): MarketSetupOdds | undefined {
+        if (!extendedOdds) return undefined;
+        const hasAny = extendedOdds.match_winner || extendedOdds.over_under || extendedOdds.both_teams_score;
+        if (!hasAny) return undefined;
+        return {
+            homeWin: extendedOdds.match_winner?.home,
+            draw: extendedOdds.match_winner?.draw,
+            awayWin: extendedOdds.match_winner?.away,
+            over25: extendedOdds.over_under?.over_2_5,
+            under25: extendedOdds.over_under?.under_2_5,
+            bttsYes: extendedOdds.both_teams_score?.yes,
+            bttsNo: extendedOdds.both_teams_score?.no,
+        };
     }
 
     /**

@@ -1,7 +1,7 @@
 /**
  * Betting Event Indexer Service
- * Écoute les événements BetPlaced des contrats de paris et enregistre en base.
- * Remplace l'appel frontend → backend pour la sauvegarde des prédictions.
+ * Listens to BetPlaced events from betting contracts and stores them in the database.
+ * Replaces frontend → backend call for saving predictions.
  */
 
 import { supabase } from '../config/supabase';
@@ -10,7 +10,7 @@ import { chiliz } from 'viem/chains';
 import { chilizConfig, networkType } from '../config/chiliz.config';
 
 const BET_PLACED_EVENT = parseAbiItem(
-    'event BetPlaced(uint256 indexed marketId, address indexed user, uint256 amount, uint256 selection)'
+    'event BetPlaced(uint256 indexed marketId, address indexed user, uint256 betIndex, uint256 amount, uint64 selection, uint32 odds, uint16 oddsIndex)'
 );
 
 const baseSepolia = defineChain({
@@ -194,7 +194,7 @@ export class BettingEventIndexerService {
             const { args, transactionHash, address } = log as any;
             if (!args || !transactionHash || !address) return;
 
-            const { user, amount, selection } = args;
+            const { user, amount, selection, odds: oddsX10000 } = args;
             const contractAddress = (typeof address === 'string' ? address : address?.address) ?? address;
             const match = this.getMatchForContract(contractAddress, matches);
             if (!match) {
@@ -229,7 +229,7 @@ export class BettingEventIndexerService {
                 prediction_type: 'match_winner',
                 prediction_value: subType,
                 predicted_team: team,
-                odds: 2.0,
+                odds: oddsX10000 != null ? Number(oddsX10000) / 10000 : 2.0,
                 transaction_hash: transactionHash,
                 placed_at: new Date().toISOString(),
                 match_start_time: match.match_date,
@@ -263,7 +263,7 @@ export class BettingEventIndexerService {
         selection: string
     ): Promise<void> {
         try {
-            // Format aligné avec donation (🎁) et subscription (⭐) pour le même design dans le chat
+            // Format aligned with donation (🎁) and subscription (⭐) for consistent chat design
             const message = `🎯 ${displayName} bet ${amountFormatted} CHZ on ${selection}`;
 
             const { error } = await supabase.from('chat_messages').insert({

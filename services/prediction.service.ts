@@ -36,7 +36,7 @@ export class PredictionService {
                 status: PredictionStatus.PENDING
             };
 
-            // Vérifier si une prédiction existe déjà pour ce hash (éviter doublons)
+            // Check if prediction already exists for this hash (avoid duplicates)
             const { data: existing } = await supabase
                 .from('predictions')
                 .select('*')

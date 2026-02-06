@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc && node dist/index.js",
     "build": "tsc",
-    "deploy:mock-match": "ts-node scripts/deploy-mock-match.ts"
+    "deploy:missing-contracts": "ts-node scripts/deploy-missing-betting-contracts.ts",
+    "setup:markets": "ts-node scripts/setup-markets-for-existing-contracts.ts"
   },
   "author": "",
   "license": "ISC",

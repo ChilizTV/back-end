@@ -8,19 +8,8 @@ import { supabase } from '../config/supabase';
 import { createPublicClient, http, parseAbiItem, Log, defineChain } from 'viem';
 import { chiliz } from 'viem/chains';
 import { chilizConfig, networkType } from '../config/chiliz.config';
-
-const BET_PLACED_EVENT = parseAbiItem(
-    'event BetPlaced(uint256 indexed marketId, address indexed user, uint256 betIndex, uint256 amount, uint64 selection, uint32 odds, uint16 oddsIndex)'
-);
-
-const baseSepolia = defineChain({
-    id: 84532,
-    name: 'Base Sepolia',
-    nativeCurrency: { decimals: 18, name: 'Ether', symbol: 'ETH' },
-    rpcUrls: { default: { http: ['https://sepolia.base.org'] } },
-    blockExplorers: { default: { name: 'BaseScan', url: 'https://sepolia.basescan.org' } },
-    testnet: true,
-});
+import { baseSepolia } from '../utils/chains';
+import { BET_PLACED_EVENT } from '../utils/abis';
 
 const POLLING_INTERVAL_MS = 6000;
 

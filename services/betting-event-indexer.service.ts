@@ -19,6 +19,7 @@ interface MatchWithContract {
     away_team: string;
     match_date: string;
     betting_contract_address: string;
+    odds?: { match_winner?: { home?: number; draw?: number; away?: number } } | null;
 }
 
 export class BettingEventIndexerService {
@@ -59,11 +60,21 @@ export class BettingEventIndexerService {
     private async getBettingContracts(): Promise<MatchWithContract[]> {
         const { data, error } = await supabase
             .from('matches')
-            .select('api_football_id, home_team, away_team, match_date, betting_contract_address')
+            .select('api_football_id, home_team, away_team, match_date, betting_contract_address, odds')
             .not('betting_contract_address', 'is', null);
 
         if (error || !data?.length) return [];
         return data as MatchWithContract[];
+    }
+
+    /** Get odds for WINNER market by selection (0=home, 1=draw, 2=away). Uses DB odds so dashboard shows correct cote per outcome. */
+    private getOddsForSelection(selection: number, match: MatchWithContract): number | null {
+        const mw = match.odds?.match_winner;
+        if (!mw) return null;
+        if (selection === 0) return mw.home ?? null;
+        if (selection === 1) return mw.draw ?? null;
+        if (selection === 2) return mw.away ?? null;
+        return null;
     }
 
     private async indexHistoricalEvents(): Promise<void> {
@@ -207,6 +218,10 @@ export class BettingEventIndexerService {
             const selectionNum = Number(selection);
             const { subType, team } = this.selectionToPrediction(selectionNum, match);
 
+            // Use DB odds for this selection (home/draw/away) so dashboard shows correct cote; contract emits single "current" odds per market
+            const oddsForSelection = this.getOddsForSelection(selectionNum, match);
+            const oddsToStore = oddsForSelection ?? (oddsX10000 != null ? Number(oddsX10000) / 10000 : 2.0);
+
             const username = await this.getUsernameForWallet(user) ?? `${user.slice(0, 6)}...${user.slice(-4)}`;
 
             const { error: predError } = await supabase.from('predictions').insert({
@@ -218,7 +233,7 @@ export class BettingEventIndexerService {
                 prediction_type: 'match_winner',
                 prediction_value: subType,
                 predicted_team: team,
-                odds: oddsX10000 != null ? Number(oddsX10000) / 10000 : 2.0,
+                odds: oddsToStore,
                 transaction_hash: transactionHash,
                 placed_at: new Date().toISOString(),
                 match_start_time: match.match_date,

@@ -149,7 +149,7 @@ async function setMatchFinished(apiFootballId: number, homeScore: number, awaySc
         throw new Error('Update error: ' + error.message);
     }
     console.log(`✅ Match ${apiFootballId} set to finished (FT), score ${homeScore}-${awayScore}.`);
-    console.log('   The resolve-markets cron will resolve markets on-chain (every 10 min or next run).');
+    console.log('   The sync-matches cron will resolve markets on-chain right after the next sync run.');
 }
 
 async function showStatus(apiFootballId: number): Promise<void> {

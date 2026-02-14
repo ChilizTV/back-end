@@ -1,13 +1,13 @@
 import { matchResolutionService } from '../services/match-resolution.service';
 
-const RESOLVE_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const RESOLVE_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Cron job to resolve betting markets on-chain for finished matches (FT).
- * Calls resolveMarket(marketId, result) for each non-resolved market (WINNER, GOALS_TOTAL, BOTH_SCORE).
+ * Runs at startup and every hour as a safety net (main resolution runs after each match sync).
  */
 export function startResolveMarketsCron() {
-    console.log('🔄 Starting resolve-markets cron job');
+    console.log('🔄 Starting resolve-markets cron job (at startup + every hour)');
     console.log(`⏰ Resolution will run every ${RESOLVE_INTERVAL_MS / 1000 / 60} minutes`);
 
     resolveFinishedMatches();

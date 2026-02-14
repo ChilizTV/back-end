@@ -74,6 +74,33 @@ export const FOOTBALL_MATCH_ABI = [
             { name: 'totalPool', type: 'uint256', internalType: 'uint256' }
         ],
         stateMutability: 'view'
+    },
+    {
+        type: 'function',
+        name: 'resolveMarket',
+        inputs: [
+            { name: 'marketId', type: 'uint256' },
+            { name: 'result', type: 'uint64' }
+        ],
+        outputs: [],
+        stateMutability: 'nonpayable'
+    },
+    {
+        type: 'function',
+        name: 'setMarketOdds',
+        inputs: [
+            { name: 'marketId', type: 'uint256' },
+            { name: 'newOdds', type: 'uint32' }
+        ],
+        outputs: [],
+        stateMutability: 'nonpayable'
+    },
+    {
+        type: 'function',
+        name: 'getCurrentOdds',
+        inputs: [{ name: 'marketId', type: 'uint256' }],
+        outputs: [{ name: '', type: 'uint32' }],
+        stateMutability: 'view'
     }
 ] as const;
 

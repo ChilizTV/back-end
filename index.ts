@@ -22,6 +22,9 @@ import * as path from 'path';
 import './config/supabase'; // Initialize Supabase
 import { securityHeadersMiddleware } from './src/infrastructure/config/security.config';
 import { env } from './src/infrastructure/config/environment';
+import { errorHandler } from './src/presentation/http/middlewares/error-handler.middleware';
+import { requestLogger } from './src/infrastructure/logging/middlewares/request-logger.middleware';
+import { logger } from './src/infrastructure/logging/logger';
 
 config();
 
@@ -55,9 +58,12 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Request logging with correlation IDs
+app.use(requestLogger);
+
 // Serve static files for HLS streams
 const streamsStaticPath = path.join(process.cwd(), 'public', 'streams');
-console.log(`📁 Serving static streams from: ${streamsStaticPath}`);
+logger.info('Serving static streams', { path: streamsStaticPath });
 
 app.use('/streams', express.static(streamsStaticPath, {
     setHeaders: (res, filePath) => {
@@ -162,8 +168,8 @@ streamNamespace.on('connection', (socket) => {
 });
 
 app.get('/', (req, res) => {
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         message: 'Football Chat API with Supabase Realtime',
         version: '2.0.0',
         endpoints: {
@@ -175,22 +181,27 @@ app.get('/', (req, res) => {
     });
 });
 
+// Global error handler - MUST be after all routes
+app.use(errorHandler);
+
 const matchService = new MatchService();
 
 server.listen(PORT, () => {
-    console.log(`🚀 Server listening on port ${PORT}`);
-    console.log(`🔗 Supabase Realtime service connected`);
-    console.log(`📡 Chat endpoints available at /chat`);
-    console.log(`⚽ Match endpoints available at /matches`);
-    console.log(`📺 Stream endpoints available at /stream`);
-    console.log(`💰 Stream Wallet endpoints available at /stream-wallet`);
-    console.log(`🎯 Predictions endpoints available at /predictions`);
-    console.log(`🎬 Socket.IO streaming namespace available at /stream`);
-    console.log(`🌐 API available at http://localhost:${PORT}`);
+    logger.info('Server started successfully', {
+        port: PORT,
+        environment: env.NODE_ENV,
+        endpoints: {
+            matches: '/matches',
+            chat: '/chat',
+            stream: '/stream',
+            streamWallet: '/stream-wallet',
+            predictions: '/predictions',
+        },
+    });
 
     // Clean up matches outside 24h window on startup
     matchService.cleanupOldMatches().catch(err => {
-        console.error('❌ Startup cleanup (matches outside 24h):', err);
+        logger.error('Startup cleanup failed', { error: err.message });
     });
 
     startMatchSyncCron();

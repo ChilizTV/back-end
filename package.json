@@ -18,6 +18,8 @@
     "@types/helmet": "^0.0.48",
     "@types/node": "^20.14.2",
     "@types/node-cron": "^3.0.11",
+    "@types/uuid": "^10.0.0",
+    "@types/winston": "^2.4.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
@@ -38,7 +40,9 @@
     "sequelize-typescript": "^2.1.6",
     "socket.io": "^4.8.1",
     "tsyringe": "^4.10.0",
+    "uuid": "^13.0.0",
     "viem": "^2.31.7",
+    "winston": "^3.19.0",
     "zod": "^3.25.76"
   }
 }

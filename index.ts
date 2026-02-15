@@ -25,6 +25,14 @@ import { env } from './src/infrastructure/config/environment';
 import { errorHandler } from './src/presentation/http/middlewares/error-handler.middleware';
 import { requestLogger } from './src/infrastructure/logging/middlewares/request-logger.middleware';
 import { logger } from './src/infrastructure/logging/logger';
+import { authRoutes } from './src/presentation/http/routes/auth.routes';
+import { authenticate } from './src/presentation/http/middlewares/authentication.middleware';
+import {
+  globalLimiter,
+  authLimiter,
+  predictionsLimiter,
+  chatLimiter,
+} from './src/presentation/http/middlewares/rate-limit.middleware';
 
 config();
 
@@ -58,6 +66,9 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Global rate limiting
+app.use(globalLimiter);
+
 // Request logging with correlation IDs
 app.use(requestLogger);
 
@@ -82,6 +93,20 @@ app.use('/streams', express.static(streamsStaticPath, {
     }
 }));
 
+// Public routes (no authentication required)
+app.use('/auth', authLimiter, authRoutes);
+
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: Date.now(),
+        version: '2.0.0',
+    });
+});
+
+// Global authentication middleware - all routes below require JWT
+app.use(authenticate);
+
 const matchController = new MatchController();
 const chatController = new ChatController();
 const streamController = new StreamController();
@@ -89,12 +114,12 @@ const waitlistController = new WaitlistController();
 const streamWalletController = new StreamWalletController();
 
 app.use('/matches', matchController.getRouter());
-app.use('/chat', chatController.getRouter());
+app.use('/chat', chatLimiter, chatController.getRouter());
 app.use('/stream', streamController.getRouter());
 app.use('/waitlist', waitlistController.getRouter());
 app.use('/stream-wallet', streamWalletController.router);
 
-app.use('/predictions', predictionController.getRouter());
+app.use('/predictions', predictionsLimiter, predictionController.getRouter());
 
 app.get('/supabase-status', (req, res) => {
     res.json({ 

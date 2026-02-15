@@ -20,7 +20,7 @@ const envSchema = z.object({
 
   ADMIN_PRIVATE_KEY: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
 
-  JWT_SECRET: z.string().min(32).optional(),
+  JWT_SECRET: z.string().min(32),
   JWT_ISSUER: z.string().default('chiliz-football-api'),
   JWT_EXPIRY: z.string().default('24h'),
 

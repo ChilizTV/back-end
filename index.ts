@@ -20,23 +20,40 @@ import { startResolveMarketsCron } from './cron/resolve-markets.cron';
 import { config } from 'dotenv';
 import * as path from 'path';
 import './config/supabase'; // Initialize Supabase
+import { securityHeadersMiddleware } from './src/infrastructure/config/security.config';
+import { env } from './src/infrastructure/config/environment';
 
 config();
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT;
+const PORT = env.PORT;
 
-// Initialize Socket.IO
+// Parse allowed origins from environment variable (comma-separated)
+const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim());
+
+// Initialize Socket.IO with CORS whitelist
 const io = new SocketIOServer(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
+// Security headers (Helmet) - adapted for Web3/dev environment
+app.use(securityHeadersMiddleware);
+
+// Body parser
 app.use(bodyParser.json({ limit: '50mb' }));
-app.use(cors());
+
+// CORS with whitelist (replaces permissive cors())
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Serve static files for HLS streams
 const streamsStaticPath = path.join(process.cwd(), 'public', 'streams');

@@ -5,6 +5,7 @@ import { SupabaseMatch, MatchSyncResult } from '../models/supabase-match.model';
 import axios from 'axios';
 import { config } from 'dotenv';
 import { bettingDeploymentService, MarketSetupOdds } from './betting-match-deployment.service';
+import { marketOddsService } from './market-odds.service';
 
 config();
 
@@ -657,8 +658,26 @@ export class MatchService {
                 throw error;
             }
 
-            console.log(`✅ Stored ${data?.length || 0} matches in Supabase`);
-            return ServiceResult.success(data?.length || 0);
+            // Web2: DB already has latest API odds from upsert above; GET /matches returns them.
+            // Web3: sync those odds to chain (setMarketOdds when different from current).
+            const stored = data ?? [];
+            for (const row of stored) {
+                const addr = (row as any).betting_contract_address;
+                const odds = (row as any).odds as ExtendedOdds | null;
+                if (addr && typeof addr === 'string' && addr.trim() !== '' && odds) {
+                    try {
+                        const updated = await marketOddsService.syncOddsForMatch(addr, odds);
+                        if (updated > 0) {
+                            console.log(`   📊 Odds synced on-chain for match ${(row as any).api_football_id}: ${updated} market(s) updated`);
+                        }
+                    } catch (err: any) {
+                        console.warn(`   ⚠️ Odds sync failed for match ${(row as any).api_football_id}:`, err?.message ?? err);
+                    }
+                }
+            }
+
+            console.log(`✅ Stored ${stored.length} matches in Supabase`);
+            return ServiceResult.success(stored.length);
         } catch (error) {
             console.error('❌ Error storing matches in Supabase:', error);
             return ServiceResult.failed();
@@ -666,7 +685,8 @@ export class MatchService {
     }
 
     /**
-     * Get all matches from Supabase
+     * Get all matches from Supabase (web2 source of truth).
+     * Returns matches with odds as stored from the last API sync; frontend/API consumers get current odds here.
      */
     async getMatchesFromSupabase(): Promise<ServiceResult<MatchWithOdds[]>> {
         try {
@@ -708,30 +728,43 @@ export class MatchService {
     }
 
     /**
-     * Clean up old matches and their related data
+     * Clean up matches that are no longer within the 24h window (past 24h to next 24h).
+     * Deletes matches with match_date < now - 24h or match_date > now + 24h, and their related data.
      */
     async cleanupOldMatches(): Promise<ServiceResult<number>> {
         try {
-            console.log('🧹 Cleaning up old matches...');
-            
-            // Get matches older than 24 hours
-            const { data: oldMatches, error: selectError } = await supabase
+            console.log('🧹 Cleaning up matches outside 24h window...');
+
+            const past24Hours = this.getPast24Hours().toISOString();
+            const next24Hours = this.getNext24Hours().toISOString();
+
+            // Matches too old (before past 24h)
+            const { data: tooOld, error: errOld } = await supabase
                 .from('matches')
                 .select('api_football_id')
-                .lt('match_date', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+                .lt('match_date', past24Hours);
 
-            if (selectError) {
-                console.error('❌ Error selecting old matches:', selectError);
-                throw selectError;
+            // Matches too far in the future (after next 24h)
+            const { data: tooFar, error: errFuture } = await supabase
+                .from('matches')
+                .select('api_football_id')
+                .gt('match_date', next24Hours);
+
+            if (errOld || errFuture) {
+                console.error('❌ Error selecting matches outside 24h window:', errOld || errFuture);
+                throw errOld || errFuture;
             }
 
-            if (!oldMatches || oldMatches.length === 0) {
-                console.log('✅ No old matches to clean up');
+            const idsOld = (tooOld ?? []).map((m: { api_football_id: number }) => m.api_football_id);
+            const idsFuture = (tooFar ?? []).map((m: { api_football_id: number }) => m.api_football_id);
+            const matchIds = [...new Set([...idsOld, ...idsFuture])];
+
+            if (matchIds.length === 0) {
+                console.log('✅ No matches outside 24h window to clean up');
                 return ServiceResult.success(0);
             }
 
-            const matchIds = oldMatches.map((match: { api_football_id: number }) => match.api_football_id);
-            console.log(`🗑️ Cleaning up ${matchIds.length} old matches...`);
+            console.log(`🗑️ Cleaning up ${matchIds.length} match(es) outside 24h window...`);
 
             // Delete related chat messages
             const { error: messagesError } = await supabase
@@ -753,18 +786,18 @@ export class MatchService {
                 console.error('❌ Error deleting connected users:', usersError);
             }
 
-            // Delete old matches
+            // Delete matches outside window
             const { error: matchesError } = await supabase
                 .from('matches')
                 .delete()
                 .in('api_football_id', matchIds);
 
             if (matchesError) {
-                console.error('❌ Error deleting old matches:', matchesError);
+                console.error('❌ Error deleting matches outside 24h window:', matchesError);
                 throw matchesError;
             }
 
-            console.log(`✅ Cleaned up ${matchIds.length} old matches and related data`);
+            console.log(`✅ Cleaned up ${matchIds.length} match(es) outside 24h window and related data`);
             return ServiceResult.success(matchIds.length);
         } catch (error) {
             console.error('❌ Error cleaning up old matches:', error);

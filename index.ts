@@ -14,7 +14,9 @@ import { streamWalletService } from './services/stream-wallet.service';
 import { bettingEventIndexerService } from './services/betting-event-indexer.service';
 import { startMatchSyncCron } from './cron/sync-matches.cron';
 import { startStreamCleanupCron } from './cron/cleanup-streams.cron';
+import { MatchService } from './services/match.service';
 import { startPredictionSettlementCron } from './cron/settle-predictions.cron';
+import { startResolveMarketsCron } from './cron/resolve-markets.cron';
 import { config } from 'dotenv';
 import * as path from 'path';
 import './config/supabase'; // Initialize Supabase
@@ -156,6 +158,8 @@ app.get('/', (req, res) => {
     });
 });
 
+const matchService = new MatchService();
+
 server.listen(PORT, () => {
     console.log(`🚀 Server listening on port ${PORT}`);
     console.log(`🔗 Supabase Realtime service connected`);
@@ -166,11 +170,17 @@ server.listen(PORT, () => {
     console.log(`🎯 Predictions endpoints available at /predictions`);
     console.log(`🎬 Socket.IO streaming namespace available at /stream`);
     console.log(`🌐 API available at http://localhost:${PORT}`);
-    
+
+    // Clean up matches outside 24h window on startup
+    matchService.cleanupOldMatches().catch(err => {
+        console.error('❌ Startup cleanup (matches outside 24h):', err);
+    });
+
     startMatchSyncCron();
     startStreamCleanupCron();
     startPredictionSettlementCron();
-    
+    startResolveMarketsCron();
+
     // Start blockchain event indexing for donations and subscriptions
     console.log('🔍 Starting blockchain event indexing...');
     streamWalletService.startEventIndexing().catch(error => {

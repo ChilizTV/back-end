@@ -1,0 +1,615 @@
+{
+  "info": {
+    "name": "Chiliz Football Betting API",
+    "description": "Complete API collection for Chiliz Football Betting Platform with authentication, matches, predictions, chat, streaming, and wallet management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "1"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Root",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Supabase Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/supabase-status",
+              "host": ["{{base_url}}"],
+              "path": ["supabase-status"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Generate Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save JWT token to collection variable",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "    console.log('JWT token saved:', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"username\": \"testuser\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "token"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Matches",
+      "item": [
+        {
+          "name": "Get All Matches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/matches",
+              "host": ["{{base_url}}"],
+              "path": ["matches"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Live Matches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/matches/live",
+              "host": ["{{base_url}}"],
+              "path": ["matches", "live"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Upcoming Matches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/matches/upcoming",
+              "host": ["{{base_url}}"],
+              "path": ["matches", "upcoming"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Match Stats Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/matches/stats/summary",
+              "host": ["{{base_url}}"],
+              "path": ["matches", "stats", "summary"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Match by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/matches/1035090",
+              "host": ["{{base_url}}"],
+              "path": ["matches", "1035090"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Matches by League",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/matches/league/Premier League",
+              "host": ["{{base_url}}"],
+              "path": ["matches", "league", "Premier League"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Predictions",
+      "item": [
+        {
+          "name": "Create Prediction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user123\",\n  \"matchId\": 1035090,\n  \"predictionType\": \"match_winner\",\n  \"predictionValue\": \"home\",\n  \"predictedTeam\": \"Manchester City\",\n  \"odds\": 2.1,\n  \"transactionHash\": \"0x1234567890abcdef\",\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"username\": \"testuser\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/predictions",
+              "host": ["{{base_url}}"],
+              "path": ["predictions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Predictions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/predictions/user123",
+              "host": ["{{base_url}}"],
+              "path": ["predictions", "user123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/predictions/stats/user123",
+              "host": ["{{base_url}}"],
+              "path": ["predictions", "stats", "user123"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Join Chat Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user123\",\n  \"username\": \"testuser\",\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/join/1035090",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "join", "1035090"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Leave Chat Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/leave/1035090",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "leave", "1035090"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user123\",\n  \"username\": \"testuser\",\n  \"message\": \"Hello everyone!\",\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/message/1035090",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "message", "1035090"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Bet Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user123\",\n  \"username\": \"testuser\",\n  \"amount\": \"10\",\n  \"selection\": \"home\",\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/bet/1035090",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "bet", "1035090"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Room Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/messages/1035090?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "messages", "1035090"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Connected Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/users/1035090",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "users", "1035090"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Chat Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/stats",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "stats"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Streaming",
+      "item": [
+        {
+          "name": "Create Stream",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"streamerAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"streamerUsername\": \"teststreamer\",\n  \"matchId\": 1035090,\n  \"title\": \"Live Match Commentary\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/stream",
+              "host": ["{{base_url}}"],
+              "path": ["stream"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Streams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stream",
+              "host": ["{{base_url}}"],
+              "path": ["stream"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "End Stream",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"streamId\": \"stream123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/stream",
+              "host": ["{{base_url}}"],
+              "path": ["stream"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Viewer Count",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"viewerCount\": 150\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/stream/stream123/viewers",
+              "host": ["{{base_url}}"],
+              "path": ["stream", "stream123", "viewers"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stream Wallet",
+      "item": [
+        {
+          "name": "Get Streamer Donations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stream-wallet/donations/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+              "host": ["{{base_url}}"],
+              "path": ["stream-wallet", "donations", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Streamer Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stream-wallet/subscriptions/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+              "host": ["{{base_url}}"],
+              "path": ["stream-wallet", "subscriptions", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Streamer Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stream-wallet/stats/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+              "host": ["{{base_url}}"],
+              "path": ["stream-wallet", "stats", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Donor History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stream-wallet/donor/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb/donations",
+              "host": ["{{base_url}}"],
+              "path": ["stream-wallet", "donor", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "donations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscriber History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stream-wallet/subscriber/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb/subscriptions",
+              "host": ["{{base_url}}"],
+              "path": ["stream-wallet", "subscriber", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "subscriptions"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Waitlist",
+      "item": [
+        {
+          "name": "Join Waitlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"email\": \"user@example.com\",\n  \"username\": \"testuser\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/waitlist",
+              "host": ["{{base_url}}"],
+              "path": ["waitlist"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Check Access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/waitlist/check-access?walletAddress=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+              "host": ["{{base_url}}"],
+              "path": ["waitlist", "check-access"],
+              "query": [
+                {
+                  "key": "walletAddress",
+                  "value": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Waitlist Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/waitlist/stats",
+              "host": ["{{base_url}}"],
+              "path": ["waitlist", "stats"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

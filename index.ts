@@ -10,13 +10,12 @@ import './config/supabase';
 import { securityHeadersMiddleware, env, setupDependencyInjection, container } from './src/infrastructure/config';
 import { logger, requestLogger } from './src/infrastructure/logging';
 import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter } from './src/presentation/http/middlewares';
-import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes } from './src/presentation/http/routes';
 import { SocketServer } from './src/presentation/websocket';
 import { JobScheduler, BlockchainEventListener } from './src/infrastructure/services';
 import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
-
 config();
 setupDependencyInjection();
+import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes } from './src/presentation/http/routes';
 
 const app = express();
 const server = http.createServer(app);

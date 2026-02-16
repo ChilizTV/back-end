@@ -5,26 +5,21 @@ export interface StreamProps {
   streamerName: string;
   streamKey: string;
   hlsUrl?: string;
-  thumbnailUrl?: string;
   isLive: boolean;
   viewerCount: number;
-  startedAt: Date;
   endedAt?: Date;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export class Stream {
   private constructor(private props: StreamProps) {}
 
-  static create(props: Omit<StreamProps, 'id' | 'createdAt' | 'updatedAt' | 'startedAt'>): Stream {
+  static create(props: Omit<StreamProps, 'id' | 'createdAt'>): Stream {
     const now = new Date();
     return new Stream({
       ...props,
       id: crypto.randomUUID(),
-      startedAt: now,
       createdAt: now,
-      updatedAt: now,
     });
   }
 
@@ -35,12 +30,10 @@ export class Stream {
   end(): void {
     this.props.isLive = false;
     this.props.endedAt = new Date();
-    this.props.updatedAt = new Date();
   }
 
   updateViewerCount(count: number): void {
     this.props.viewerCount = count;
-    this.props.updatedAt = new Date();
   }
 
   getId(): string {
@@ -63,13 +56,10 @@ export class Stream {
       streamerName: this.props.streamerName,
       streamKey: this.props.streamKey,
       hlsUrl: this.props.hlsUrl,
-      thumbnailUrl: this.props.thumbnailUrl,
       isLive: this.props.isLive,
       viewerCount: this.props.viewerCount,
-      startedAt: this.props.startedAt,
       endedAt: this.props.endedAt,
       createdAt: this.props.createdAt,
-      updatedAt: this.props.updatedAt,
     };
   }
 }

@@ -9,15 +9,13 @@ interface StreamRow {
   match_id: number;
   streamer_id: string;
   streamer_name: string;
+  streamer_wallet_address?: string;
   stream_key: string;
-  hls_url?: string;
-  thumbnail_url?: string;
-  is_live: boolean;
+  hls_playlist_url?: string;
+  status: 'active' | 'ended';
   viewer_count: number;
-  started_at: string;
-  ended_at?: string;
   created_at: string;
-  updated_at: string;
+  ended_at?: string;
 }
 
 @injectable()
@@ -26,7 +24,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
     const row = this.toRow(stream);
 
     const { data, error } = await supabase
-      .from('streams')
+      .from('live_streams')
       .insert(row)
       .select()
       .single();
@@ -41,7 +39,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async findById(id: string): Promise<Stream | null> {
     const { data: row, error } = await supabase
-      .from('streams')
+      .from('live_streams')
       .select('*')
       .eq('id', id)
       .maybeSingle();
@@ -56,7 +54,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async findByStreamKey(streamKey: string): Promise<Stream | null> {
     const { data: row, error } = await supabase
-      .from('streams')
+      .from('live_streams')
       .select('*')
       .eq('stream_key', streamKey)
       .maybeSingle();
@@ -71,10 +69,10 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async findActiveStreams(): Promise<Stream[]> {
     const { data: rows, error } = await supabase
-      .from('streams')
+      .from('live_streams')
       .select('*')
-      .eq('is_live', true)
-      .order('started_at', { ascending: false });
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
 
     if (error) {
       logger.error('Failed to find active streams', { error: error.message });
@@ -86,9 +84,9 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async findOldEndedStreams(before: Date): Promise<Stream[]> {
     const { data: rows, error } = await supabase
-      .from('streams')
+      .from('live_streams')
       .select('*')
-      .eq('is_live', false)
+      .eq('status', 'ended')
       .not('ended_at', 'is', null)
       .lt('ended_at', before.toISOString());
 
@@ -102,7 +100,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('streams')
+      .from('live_streams')
       .delete()
       .eq('id', id);
 
@@ -116,7 +114,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
     const row = this.toRow(stream);
 
     const { data, error } = await supabase
-      .from('streams')
+      .from('live_streams')
       .update(row)
       .eq('id', stream.getId())
       .select()
@@ -137,14 +135,11 @@ export class SupabaseStreamRepository implements IStreamRepository {
       streamerId: row.streamer_id,
       streamerName: row.streamer_name,
       streamKey: row.stream_key,
-      hlsUrl: row.hls_url,
-      thumbnailUrl: row.thumbnail_url,
-      isLive: row.is_live,
+      hlsUrl: row.hls_playlist_url,
+      isLive: row.status === 'active',
       viewerCount: row.viewer_count,
-      startedAt: new Date(row.started_at),
       endedAt: row.ended_at ? new Date(row.ended_at) : undefined,
       createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
     });
   }
 
@@ -156,14 +151,11 @@ export class SupabaseStreamRepository implements IStreamRepository {
       streamer_id: json.streamerId,
       streamer_name: json.streamerName,
       stream_key: json.streamKey,
-      hls_url: json.hlsUrl,
-      thumbnail_url: json.thumbnailUrl,
-      is_live: json.isLive,
+      hls_playlist_url: json.hlsUrl,
+      status: json.isLive ? 'active' : 'ended',
       viewer_count: json.viewerCount,
-      started_at: json.startedAt.toISOString(),
-      ended_at: json.endedAt ? json.endedAt.toISOString() : null,
       created_at: json.createdAt.toISOString(),
-      updated_at: json.updatedAt.toISOString(),
+      ended_at: json.endedAt ? json.endedAt.toISOString() : null,
     };
   }
 }

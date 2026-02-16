@@ -1,194 +1,150 @@
-# Live Football Match Streaming Platform
+# Chiliz Football Betting & Streaming Platform
 
-Node.js backend that enables live streaming of football matches with a real-time chat system via Supabase.
+Node.js backend with Clean Architecture for live football match streaming, real-time chat, blockchain-based betting, and fan engagement on Chiliz network.
+
+## 🏗️ Architecture
+
+This project follows **Clean Architecture** principles with four distinct layers:
+
+```
+src/
+├── domain/              # Business entities and repository interfaces
+│   ├── matches/
+│   ├── predictions/
+│   ├── chat/
+│   ├── streams/
+│   ├── stream-wallet/
+│   └── waitlist/
+├── application/         # Use cases (business logic orchestration)
+│   ├── matches/
+│   ├── predictions/
+│   └── ...
+├── infrastructure/      # External adapters and services
+│   ├── blockchain/      # Viem, contract interactions, indexers
+│   ├── database/        # Supabase repositories
+│   ├── logging/         # Winston logger
+│   └── scheduling/      # Cron jobs
+└── presentation/        # Controllers, routes, WebSocket, CLI
+    ├── http/
+    ├── websocket/
+    └── cli/
+```
 
 ## 🚀 Features
 
+### ⚡ Blockchain Integration (Chiliz/Base Sepolia)
+- ✅ **Smart Contract Deployment**: Automated deployment of betting contracts
+- ✅ **Event Indexing**: Real-time indexing of on-chain events (bets, donations, subscriptions)
+- ✅ **Market Resolution**: Automatic settlement of betting markets
+- ✅ **Stream Monetization**: Donations and subscriptions with platform fees
+- ✅ **Multi-network Support**: Chiliz mainnet and Base Sepolia testnet
+
 ### 📺 Live Streaming System
-
-The system allows users to create and broadcast live video streams for football matches. Viewers can watch these streams in real-time in their browser.
-
-#### Available streaming modes
-
-**1. Screen share only**
-- User shares only their screen
-- Ideal for commenting on matches or sharing content
-
-**2. Camera only**
-- User streams only their webcam
-- Perfect for face-to-camera live commentary
-
-**3. Screen + Camera combined**
-- User shares their screen with a camera overlay
-- Camera appears as an overlay on the shared screen
-- Camera position and size can be adjusted in real-time
-- Ideal for match commentary with visual presentation
-
-#### Audio features
-
-- **System audio capture**: Captures sound from the shared screen (music, videos, etc.)
-- **Microphone capture**: Captures the streamer's voice
-- **Automatic fallback**: If system audio is not available, the system automatically uses the microphone
-- **Cross-platform compatibility**: Works on Windows, macOS, and Linux
-
-#### Viewer experience
-
-- **Real-time playback**: Viewers see the stream with a slight delay (a few seconds)
-- **Automatic adaptation**: Quality automatically adapts to the connection
-- **Audio/video synchronization**: Audio and video are perfectly synchronized
-- **Smooth playback**: System automatically handles buffering and reconnections
+- ✅ **HLS Streaming**: HTTP Live Streaming with adaptive bitrate
+- ✅ **Multiple Modes**: Screen share, camera, or combined
+- ✅ **Audio Capture**: System audio + microphone with automatic fallback
+- ✅ **Real-time Stats**: Viewer count tracking
+- ✅ **Stream Wallet**: On-chain donations and subscriptions
 
 ### ⚽ Football Matches
+- ✅ **API-Football Integration**: Real-time match data synchronization
+- ✅ **Multi-league Support**: Premier League, La Liga, Serie A, Bundesliga, etc.
+- ✅ **Odds Management**: Real odds with market creation
+- ✅ **Temporal Filtering**: 48h window centered on current time
+- ✅ **Auto-sync**: Every 10 minutes via cron jobs
 
-- ✅ Fetching matches from API-FOOTBALL
-- ✅ Filtering by specific leagues (Ligue 1, Premier League, La Liga, Serie A, etc.)
-- ✅ Real odds from API-FOOTBALL with random fallback
-- ✅ In-memory cache with automatic refresh
-- ✅ Temporal filtering (48h centered on current time)
-- ✅ Automatic synchronization every 10 minutes
+### 🎯 Prediction System
+- ✅ **On-chain Betting**: All bets recorded on blockchain
+- ✅ **Multiple Markets**: Match winner, over/under, BTTS
+- ✅ **Automatic Settlement**: Based on match results
+- ✅ **User Stats**: Win rate, total bets, earnings tracking
+- ✅ **Transaction History**: Full blockchain audit trail
 
 ### 💬 Real-Time Chat
+- ✅ **Supabase Realtime**: WebSocket-based chat per match
+- ✅ **System Messages**: Bet notifications, match events
+- ✅ **User Presence**: Connected users tracking
+- ✅ **Message Types**: Text, bets, system announcements
+- ✅ **PostgreSQL Storage**: Full message history
 
-- ✅ Real-time chat with Supabase Realtime
-- ✅ One chat room per match
-- ✅ System messages (join/leave, match start/end)
-- ✅ Messages with odds
-- ✅ Featured messages for users with tokens
-- ✅ PostgreSQL database with automatic indexing
+### 🔐 Authentication & Access Control
+- ✅ **JWT-based Auth**: Secure token generation
+- ✅ **Wallet Integration**: Web3 wallet address authentication
+- ✅ **Waitlist System**: Early access management
+- ✅ **Rate Limiting**: Protection against abuse
 
-## 🎬 How does streaming work?
+## 📡 API Documentation
 
-### For the streamer
+### Postman Collection
 
-1. **Stream creation**: User creates a new stream for a specific match
-2. **Source selection**: User chooses what to stream (screen, camera, or both)
-3. **Configuration**: If both modes are selected, user can adjust camera position and size
-4. **Start**: Stream begins and video/audio data is sent to the server
-5. **Broadcast**: Server processes the data and makes it available to viewers
-6. **Stop**: User can stop the stream at any time
+Import the complete API collection with all endpoints:
+- **File**: `postman_collection.json`
+- **Guide**: See `POSTMAN_GUIDE.md` for detailed usage instructions
+- **Features**: Auto JWT token management, 35+ endpoints, example requests
 
-### For the viewer
+### Core Endpoints
 
-1. **Discovery**: Viewer sees the list of active streams for a match
-2. **Selection**: Viewer chooses a stream to watch
-3. **Playback**: Stream automatically loads and starts playing
-4. **Experience**: Viewer sees the stream in real-time with synchronized audio
+#### Authentication (Public)
+- `POST /auth/token` - Generate JWT token with wallet address
 
-### Simplified architecture
+#### Matches (Authenticated)
+- `GET /matches` - All matches
+- `GET /matches/live` - Live matches
+- `GET /matches/upcoming` - Upcoming matches
+- `GET /matches/stats/summary` - Statistics summary
+- `GET /matches/:id` - Match details
+- `GET /matches/league/:league` - Matches by league
 
-- **Client (browser)**: Captures video/audio and sends it to the server
-- **Server**: Receives data, processes it, and converts it to streaming format
-- **Database**: Stores information about active streams
-- **Viewers**: Connect to the server to receive the processed stream
+#### Predictions (Authenticated)
+- `POST /predictions` - Create prediction
+- `GET /predictions/:userId` - User predictions
+- `GET /predictions/stats/:userId` - User statistics
 
-## 📡 API Endpoints
+#### Chat (Authenticated)
+- `POST /chat/join/:matchId` - Join chat room
+- `POST /chat/leave/:matchId` - Leave chat room
+- `POST /chat/message/:matchId` - Send message
+- `POST /chat/bet/:matchId` - Send bet message
+- `GET /chat/messages/:matchId` - Get messages
+- `GET /chat/users/:matchId` - Connected users
+- `GET /chat/stats` - Global statistics
 
-### Streaming
+#### Streaming (Authenticated)
+- `POST /stream` - Create stream
+- `GET /stream` - Active streams
+- `DELETE /stream` - End stream
+- `PUT /stream/:streamId/viewers` - Update viewer count
 
-#### POST `/stream`
-Create a new stream for a match
+#### Stream Wallet (Authenticated)
+- `GET /stream-wallet/donations/:streamerAddress` - Streamer donations
+- `GET /stream-wallet/subscriptions/:streamerAddress` - Subscriptions
+- `GET /stream-wallet/stats/:streamerAddress` - Streamer stats
+- `GET /stream-wallet/donor/:donorAddress/donations` - Donor history
+- `GET /stream-wallet/subscriber/:subscriberAddress/subscriptions` - Subscriber history
 
-**Request:**
-```json
-{
-  "matchId": 123456,
-  "streamerId": "user_123",
-  "streamerName": "JohnDoe"
-}
-```
+#### Waitlist (Authenticated)
+- `POST /waitlist` - Join waitlist
+- `GET /waitlist/check-access` - Check access
+- `GET /waitlist/stats` - Waitlist statistics
 
-**Response:**
-```json
-{
-  "success": true,
-  "stream": {
-    "id": "uuid",
-    "matchId": 123456,
-    "streamerId": "user_123",
-    "streamerName": "JohnDoe",
-    "streamKey": "stream_1234567890_abc123",
-    "hlsPlaylistUrl": "http://localhost:3001/streams/stream_1234567890_abc123/playlist.m3u8",
-    "status": "active",
-    "viewerCount": 0,
-    "createdAt": "2024-01-15T20:00:00Z"
-  }
-}
-```
-
-#### GET `/stream?matchId={matchId}`
-Get all active streams for a match
-
-**Response:**
-```json
-{
-  "success": true,
-  "streams": [
-    {
-      "id": "uuid",
-      "matchId": 123456,
-      "streamerName": "JohnDoe",
-      "hlsPlaylistUrl": "http://localhost:3001/streams/stream_1234567890_abc123/playlist.m3u8",
-      "status": "active",
-      "viewerCount": 5
-    }
-  ]
-}
-```
-
-#### DELETE `/stream/{streamId}`
-Stop a stream
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Stream ended successfully"
-}
-```
-
-### Matches
-
-#### GET `/matches`
-Get all available matches
-
-#### GET `/matches/live`
-Get live matches
-
-#### GET `/matches/upcoming`
-Get upcoming matches
-
-#### GET `/matches/{id}`
-Get a specific match
-
-#### POST `/matches/sync`
-Trigger manual synchronization
-
-### Chat
-
-#### POST `/chat/join/{matchId}`
-Join a chat room
-
-#### POST `/chat/leave/{matchId}`
-Leave a chat room
-
-#### POST `/chat/message/{matchId}`
-Send a message
-
-#### POST `/chat/bet/{matchId}`
-Place a prediction
-
-#### GET `/chat/messages/{matchId}`
-Get messages from a room
-
-#### GET `/chat/users/{matchId}`
-Get connected users
-
-#### GET `/chat/stats`
-Chat statistics
+#### Health & Status
+- `GET /health` - Server health check
+- `GET /supabase-status` - Supabase status
+- `GET /` - API information
 
 ## ⚙️ Installation
 
-1. **Clone the project**
+### Prerequisites
+- Node.js v18+
+- FFmpeg (for streaming)
+- Supabase account
+- API-Football API key
+- Chiliz/Base Sepolia RPC access
+- Wallet with private key for contract deployment
+
+### Setup
+
+1. **Clone the repository**
 ```bash
 git clone <repository-url>
 cd server
@@ -201,92 +157,199 @@ npm install
 
 3. **Configure environment variables**
 ```bash
-# Create a .env file
-echo "API_FOOTBALL_KEY=your_api_football_key" > .env
-echo "PORT=3001" >> .env
-echo "SUPABASE_URL=your_supabase_url" >> .env
-echo "SUPABASE_ANON_KEY=your_supabase_anon_key" >> .env
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+**Required Environment Variables:**
+```env
+# Server
+PORT=3001
+NODE_ENV=development
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# API Football
+API_FOOTBALL_KEY=your_api_football_key
+
+# Supabase
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# JWT
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=7d
+
+# Blockchain
+NETWORK=testnet
+ADMIN_PRIVATE_KEY=your_private_key
+BETTING_FACTORY_ADDRESS=0x...
+STREAM_WALLET_FACTORY_ADDRESS=0x...
 ```
 
 4. **Set up Supabase Database**
-   - Go to your Supabase project dashboard
-   - Navigate to SQL Editor
-   - Run the SQL scripts from `src/infrastructure/database/schemas/schema.sql` and `src/infrastructure/database/schemas/streams-schema.sql`
+   - Navigate to your Supabase project SQL Editor
+   - Run all schema files from `src/infrastructure/database/schemas/`:
+     - `schema.sql`
+     - `predictions-schema.sql`
+     - `streams-schema.sql` (table name: `live_streams`)
+     - `stream-wallet-schema.sql`
+     - `waitlist-schema.sql`
+   - Apply migrations from `src/infrastructure/database/migrations/`
 
-5. **Test Supabase connection**
-```bash
-node test-supabase.js
-```
-
-6. **Build and start**
+5. **Build the project**
 ```bash
 npm run build
+```
+
+6. **Start the server**
+```bash
 npm start
 ```
 
-## 🔧 Configuration
+The server will start on `http://localhost:3001`
 
-### Environment Variables
+## 🛠️ CLI Commands
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `API_FOOTBALL_KEY` | API-FOOTBALL key | Required |
-| `PORT` | Server port | 3001 |
-| `SUPABASE_URL` | Supabase project URL | Required |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | Required |
-| `STREAM_BASE_URL` | Base URL for streams | Auto-detected |
+The project includes several CLI commands for blockchain operations:
 
-### Allowed Leagues
+### Deploy Missing Contracts
+```bash
+npm run cli:deploy-contracts
+```
+Deploys betting contracts for matches that don't have one yet.
 
-Matches are filtered to include only these leagues:
-- 743: Ligue 1 (France)
-- 15: Premier League (England)
-- 39: La Liga (Spain)
-- 61: Serie A (Italy)
-- 140: Primeira Liga (Portugal)
-- 2: UEFA Champions League
-- 3: UEFA Europa League
-- 78: Bundesliga (Germany)
-- 135: Serie A (Italy)
+### Setup Markets
+```bash
+npm run cli:setup-markets
+```
+Configures betting markets for existing contracts.
 
-## 🚀 Deployment
+### Test Match Lifecycle
+```bash
+npm run cli:test-lifecycle
+```
+Interactive CLI to test match creation, status updates, and contract deployment.
 
-### Local Development
+## 🔄 Scheduled Jobs
+
+The application runs several cron jobs automatically:
+
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| SyncMatches | Every 10 min | Fetch matches from API-Football |
+| ResolveMarkets | Every 60 min | Resolve finished matches on-chain |
+| SettlePredictions | Every 5 min | Settle user predictions |
+| CleanupStreams | Every hour | Clean up old ended streams |
+
+## 🎛️ Blockchain Event Indexers
+
+Two indexers run continuously to listen to blockchain events:
+
+### StreamWalletIndexer
+- **Events**: DonationProcessed, SubscriptionProcessed, StreamWalletCreated
+- **Polling**: Every 6 seconds
+- **Features**: Platform fee calculation, chat notifications, subscription expiry checks
+
+### BettingEventIndexer
+- **Events**: BetPlaced
+- **Polling**: Every 6 seconds
+- **Features**: Prediction creation, odds tracking, chat bet messages
+
+## 📊 Tech Stack
+
+- **Runtime**: Node.js + TypeScript
+- **Architecture**: Clean Architecture with DI (tsyringe)
+- **Web Framework**: Express.js
+- **Database**: PostgreSQL via Supabase
+- **Real-time**: Supabase Realtime + Socket.IO
+- **Blockchain**: Viem (Ethereum interactions)
+- **Logging**: Winston (structured logging)
+- **Validation**: Zod
+- **Testing**: Jest
+- **Streaming**: FFmpeg + HLS
+
+## 🔧 Development
+
+### Build
 ```bash
 npm run build
-npm start
 ```
 
-### Production
+### Watch mode
 ```bash
-npm run build
-NODE_ENV=production npm start
+npm run dev
 ```
 
-## 📊 Monitoring
+### Run tests
+```bash
+npm test
+```
 
-- **Health Check**: `GET /supabase-status`
-- **Chat Statistics**: `GET /chat/stats`
-- **Match Statistics**: Available in logs
+### Linting
+```bash
+npm run lint
+```
 
 ## 🐛 Troubleshooting
 
-### Supabase Connection Issues
-1. Check your environment variables
-2. Run `node test-supabase.js`
-3. Verify tables are created in Supabase
+### DI Container Issues
+If you encounter dependency injection errors:
+1. Verify all repositories are registered in `src/infrastructure/config/di-container.ts`
+2. Ensure `setupDependencyInjection()` is called before importing routes
+3. Check that interfaces match implementation class names
 
-### Chat Not Working
-1. Check that Supabase Realtime is enabled
-2. Verify RLS policies (if enabled)
-3. Check network connectivity
+### Supabase Connection Issues
+1. Verify environment variables are set correctly
+2. Check that SERVICE_ROLE_KEY is used (bypasses RLS)
+3. Ensure all tables exist with correct names (`live_streams`, not `streams`)
+
+### Blockchain Indexer Issues
+1. Check RPC URL is accessible
+2. Verify contract addresses are correct for your network
+3. Check logs for event indexing status
 
 ### Streaming Not Working
-1. Verify that port 3001 is accessible
-2. Verify that FFmpeg is installed on the server
-3. Check write permissions in the `public/streams` folder
-4. Check server logs for errors
+1. Verify FFmpeg is installed: `ffmpeg -version`
+2. Check write permissions in `public/streams/`
+3. Ensure port 3001 is accessible
+4. Check CORS configuration in `ALLOWED_ORIGINS`
 
-## 📝 License
+## 📝 Project Structure
 
-AGPL-3.0 License 
+```
+server/
+├── src/
+│   ├── domain/                 # Business logic layer
+│   ├── application/            # Use cases
+│   ├── infrastructure/         # External services
+│   └── presentation/           # API, WebSocket, CLI
+├── public/
+│   └── streams/               # HLS stream files
+├── postman_collection.json    # API testing collection
+├── POSTMAN_GUIDE.md          # Postman usage guide
+└── README.md                 # This file
+```
+
+## 🔐 Security
+
+- **JWT Authentication**: All protected routes require valid JWT
+- **Rate Limiting**: Global, auth, predictions, and chat rate limits
+- **CORS**: Whitelist-based CORS configuration
+- **Input Validation**: Zod schemas for all requests
+- **RLS Bypass**: Service role key for Supabase operations
+
+## 📚 Additional Resources
+
+- **Postman Guide**: See `POSTMAN_GUIDE.md` for API testing
+- **Database Guide**: See `src/infrastructure/database/README.md` for schema management
+- **Architecture**: Clean Architecture with dependency injection
+- **Logging**: Winston with structured JSON logs for production
+
+## 📄 License
+
+AGPL-3.0 License
+
+---
+
+✅ **Server ready** - Clean Architecture migration complete with 35+ endpoints, blockchain integration, and real-time features!

@@ -1,10 +1,10 @@
 import { injectable, inject } from 'tsyringe';
 import { IWaitlistRepository } from '../../../domain/waitlist/repositories/IWaitlistRepository';
+import { WaitlistEntry } from '../../../domain/waitlist/entities/WaitlistEntry';
 
 export interface CheckAccessResult {
   hasAccess: boolean;
-  email?: string;
-  walletAddress?: string;
+  entry?: WaitlistEntry;
 }
 
 @injectable()
@@ -20,7 +20,7 @@ export class CheckAccessUseCase {
       if (entry && entry.hasAccess()) {
         return {
           hasAccess: true,
-          email: entry.getEmail(),
+          entry,
         };
       }
     }
@@ -30,7 +30,7 @@ export class CheckAccessUseCase {
       if (entry && entry.hasAccess()) {
         return {
           hasAccess: true,
-          walletAddress,
+          entry,
         };
       }
     }

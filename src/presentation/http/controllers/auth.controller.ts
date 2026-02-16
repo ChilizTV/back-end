@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { waitlistService } from '../../../../services/waitlist.service';
-import { ServiceErrorCode } from '../../../../services/service.result';
+import { injectable, inject } from 'tsyringe';
+import { CheckAccessUseCase } from '../../../application/waitlist/use-cases/CheckAccessUseCase';
 import { jwtConfig } from '../../../infrastructure/config/jwt.config';
 import { UnauthorizedError } from '../../../domain/shared/errors/UnauthorizedError';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -9,7 +9,11 @@ import { logger } from '../../../infrastructure/logging/logger';
 /**
  * Auth controller - handles JWT token generation
  */
+@injectable()
 export class AuthController {
+  constructor(
+    @inject(CheckAccessUseCase) private checkAccessUseCase: CheckAccessUseCase
+  ) {}
   /**
    * POST /auth/token
    * Generates JWT token after verifying user access via waitlist
@@ -18,25 +22,20 @@ export class AuthController {
     try {
       const { email, walletAddress } = req.body;
 
-      // Verify access via existing waitlist service
-      const accessResult = await waitlistService.checkAccess({ email, walletAddress });
+      // Verify access via use case
+      const accessResult = await this.checkAccessUseCase.execute(email, walletAddress);
 
-      if (accessResult.errorCode !== ServiceErrorCode.success || !accessResult.result) {
-        next(new UnauthorizedError('Failed to verify access'));
-        return;
-      }
-
-      const { hasAccess, entry } = accessResult.result;
-
-      if (!hasAccess || !entry) {
+      if (!accessResult.hasAccess || !accessResult.entry) {
         next(new UnauthorizedError('Access denied - not whitelisted'));
         return;
       }
 
+      const { entry } = accessResult;
+
       // Generate JWT
       const payload = {
-        email: entry.email,
-        walletAddress: entry.walletAddress,
+        email: entry.getEmail(),
+        walletAddress: entry.getWalletAddress(),
         role: 'USER', // Default role - can be enriched later
       };
 
@@ -47,8 +46,8 @@ export class AuthController {
       });
 
       logger.info('JWT token generated', {
-        email: entry.email,
-        walletAddress: entry.walletAddress,
+        email: entry.getEmail(),
+        walletAddress: entry.getWalletAddress(),
       });
 
       res.json({
@@ -56,9 +55,9 @@ export class AuthController {
         token,
         expiresIn: jwtConfig.expiresIn,
         user: {
-          email: entry.email,
-          walletAddress: entry.walletAddress,
-          isWhitelisted: entry.isWhitelisted,
+          email: entry.getEmail(),
+          walletAddress: entry.getWalletAddress(),
+          isWhitelisted: entry.hasAccess(),
         },
       });
     } catch (error) {

@@ -1,22 +1,17 @@
-/**
- * Market Odds Service
- * Syncs API Football odds to on-chain contracts (setMarketOdds).
- * The contract stores a single "current" odds per market; we push the representative odds
- * (WINNER = homeWin, GOALS_TOTAL = over25, BOTH_SCORE = bttsYes).
- */
-
+import { injectable } from 'tsyringe';
 import { createWalletClient, createPublicClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { chiliz } from 'viem/chains';
-import { chilizConfig, networkType } from '../src/infrastructure/config/chiliz.config';
-import { baseSepolia } from '../src/infrastructure/blockchain/chains';
-import { FOOTBALL_MATCH_ABI } from '../src/infrastructure/blockchain/abis';
-import type { ExtendedOdds } from '../src/infrastructure/external/types/ApiFootball.types';
+import { chilizConfig, networkType } from '../../config/chiliz.config';
+import { baseSepolia } from '../chains';
+import { FOOTBALL_MATCH_ABI } from '../abis';
+import type { ExtendedOdds } from '../../external/types/ApiFootball.types';
+import { logger } from '../../logging/logger';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
-
 const TX_DELAY_MS = 4000;
-function delay(ms: number = TX_DELAY_MS) {
+
+function delay(ms: number = TX_DELAY_MS): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -40,7 +35,14 @@ function getRepresentativeOdds(extendedOdds: ExtendedOdds | null): { marketId: n
     return out;
 }
 
-export class MarketOddsService {
+/**
+ * Market Odds Adapter
+ * Syncs API Football odds to on-chain contracts (setMarketOdds).
+ * The contract stores a single "current" odds per market; we push the representative odds
+ * (WINNER = homeWin, GOALS_TOTAL = over25, BOTH_SCORE = bttsYes).
+ */
+@injectable()
+export class MarketOddsAdapter {
     private walletClient: ReturnType<typeof createWalletClient>;
     private publicClient: ReturnType<typeof createPublicClient>;
     private chain: typeof baseSepolia | typeof chiliz;
@@ -60,7 +62,10 @@ export class MarketOddsService {
             chain: this.chain,
             transport: http(chilizConfig.rpcUrl),
         });
-        console.log(`🔧 MarketOddsService initialized on ${networkType} (${this.chain.name})`);
+        logger.info('MarketOddsAdapter initialized', {
+            network: networkType,
+            chain: this.chain.name
+        });
     }
 
     /**
@@ -82,7 +87,10 @@ export class MarketOddsService {
             });
             marketCount = Number(count);
         } catch (e) {
-            console.warn(`⚠️ [MarketOdds] Cannot read marketCount for ${contractAddress}:`, (e as Error).message);
+            logger.warn('Cannot read marketCount for contract', {
+                contractAddress,
+                error: e instanceof Error ? e.message : 'Unknown error'
+            });
             return 0;
         }
 
@@ -114,13 +122,20 @@ export class MarketOddsService {
                 });
                 await delay();
                 updated++;
-                console.log(`   📊 [MarketOdds] ${contractAddress.slice(0, 10)}… market ${marketId}: ${currentX10000 / 10000} → ${decimal}`);
+                logger.info('Market odds updated on-chain', {
+                    contractAddress: contractAddress.slice(0, 10) + '…',
+                    marketId,
+                    oldOdds: currentX10000 / 10000,
+                    newOdds: decimal
+                });
             } catch (err: any) {
-                console.warn(`   ⚠️ [MarketOdds] setMarketOdds(${marketId}) failed for ${contractAddress}:`, err?.message ?? err);
+                logger.warn('setMarketOdds failed', {
+                    contractAddress,
+                    marketId,
+                    error: err?.message ?? err
+                });
             }
         }
         return updated;
     }
 }
-
-export const marketOddsService = new MarketOddsService();

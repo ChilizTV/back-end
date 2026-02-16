@@ -31,6 +31,7 @@ import { JoinWaitlistUseCase } from '../../application/waitlist/use-cases/JoinWa
 import { CheckAccessUseCase } from '../../application/waitlist/use-cases/CheckAccessUseCase';
 import { GetWaitlistStatsUseCase } from '../../application/waitlist/use-cases/GetWaitlistStatsUseCase';
 import { WaitlistController } from '../../presentation/http/controllers/waitlist.controller';
+import { AuthController } from '../../presentation/http/controllers/auth.controller';
 import { IStreamRepository } from '../../domain/streams/repositories/IStreamRepository';
 import { SupabaseStreamRepository } from '../persistence/repositories/SupabaseStreamRepository';
 import { CreateStreamUseCase } from '../../application/streams/use-cases/CreateStreamUseCase';
@@ -46,6 +47,13 @@ import { GetStreamerStatsUseCase } from '../../application/stream-wallet/use-cas
 import { GetDonorHistoryUseCase } from '../../application/stream-wallet/use-cases/GetDonorHistoryUseCase';
 import { GetSubscriberHistoryUseCase } from '../../application/stream-wallet/use-cases/GetSubscriberHistoryUseCase';
 import { StreamWalletController } from '../../presentation/http/controllers/stream-wallet.controller';
+import { TokenBalanceAdapter } from '../blockchain/adapters/TokenBalanceAdapter';
+import { MarketOddsAdapter } from '../blockchain/adapters/MarketOddsAdapter';
+import { MatchResolutionAdapter } from '../blockchain/adapters/MatchResolutionAdapter';
+import { BettingContractDeploymentAdapter } from '../blockchain/adapters/BettingContractDeploymentAdapter';
+import { FootballApiAdapter } from '../external/adapters/FootballApiAdapter';
+import { ResolveFinishedMatchesUseCase } from '../../application/matches/use-cases/ResolveFinishedMatchesUseCase';
+import { SyncMatchesUseCase } from '../../application/matches/use-cases/SyncMatchesUseCase';
 
 export function setupDependencyInjection(): void {
   // Infrastructure - Repositories
@@ -68,6 +76,15 @@ export function setupDependencyInjection(): void {
     useClass: SupabaseStreamWalletRepository,
   });
 
+  // Infrastructure - Blockchain Adapters
+  container.registerSingleton(TokenBalanceAdapter);
+  container.registerSingleton(MarketOddsAdapter);
+  container.registerSingleton(MatchResolutionAdapter);
+  container.registerSingleton(BettingContractDeploymentAdapter);
+
+  // Infrastructure - External Adapters
+  container.registerSingleton(FootballApiAdapter);
+
   // Application - Predictions Use Cases
   container.registerSingleton(CreatePredictionUseCase);
   container.registerSingleton(GetUserPredictionsUseCase);
@@ -80,6 +97,8 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetMatchByIdUseCase);
   container.registerSingleton(GetMatchesByLeagueUseCase);
   container.registerSingleton(GetMatchStatsUseCase);
+  container.registerSingleton(ResolveFinishedMatchesUseCase);
+  container.registerSingleton(SyncMatchesUseCase);
 
   // Application - Chat Use Cases
   container.registerSingleton(JoinRoomUseCase);
@@ -113,6 +132,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(MatchController);
   container.registerSingleton(ChatController);
   container.registerSingleton(WaitlistController);
+  container.registerSingleton(AuthController);
   container.registerSingleton(StreamController);
   container.registerSingleton(StreamWalletController);
 }

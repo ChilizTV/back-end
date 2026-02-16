@@ -45,8 +45,10 @@ export class WaitlistController {
       res.json({
         success: true,
         hasAccess: result.hasAccess,
-        ...(result.email && { email: result.email }),
-        ...(result.walletAddress && { walletAddress: result.walletAddress }),
+        ...(result.entry && {
+          email: result.entry.getEmail(),
+          walletAddress: result.entry.getWalletAddress(),
+        }),
       });
     } catch (error) {
       next(error);

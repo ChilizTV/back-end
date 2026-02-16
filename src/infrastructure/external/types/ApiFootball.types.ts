@@ -6,8 +6,8 @@ export interface ApiFootballMatch {
         venue: { name: string };
     };
     teams: {
-        home: { name: string };
-        away: { name: string };
+        home: { name: string; logo?: string };
+        away: { name: string; logo?: string };
     };
     goals: {
         home: number | null;
@@ -17,6 +17,8 @@ export interface ApiFootballMatch {
         name: string;
         season: number;
         id: number;
+        country?: string;
+        logo?: string;
     };
     referee: string;
 }

@@ -16,6 +16,7 @@ interface MatchRow {
   league: any;
   venue: string | null;
   odds: any;
+  betting_contract_address?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +46,21 @@ export class SupabaseMatchRepository implements IMatchRepository {
 
     if (error) {
       logger.error('Failed to find match by id', { error: error.message, id });
+      throw new Error('Failed to find match');
+    }
+
+    return row ? this.toDomain(row) : null;
+  }
+
+  async findByApiFootballId(apiFootballId: number): Promise<Match | null> {
+    const { data: row, error } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('api_football_id', apiFootballId)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('Failed to find match by API Football ID', { error: error.message, apiFootballId });
       throw new Error('Failed to find match');
     }
 
@@ -192,21 +208,24 @@ export class SupabaseMatchRepository implements IMatchRepository {
 
     return Match.reconstitute({
       id: row.id,
+      apiFootballId: row.api_football_id,
       homeTeamId: row.home_team?.id || 0,
       homeTeamName: row.home_team?.name || 'Unknown',
-      homeTeamLogo: row.home_team?.logo || '',
+      homeTeamLogo: row.home_team?.logo,
       awayTeamId: row.away_team?.id || 0,
       awayTeamName: row.away_team?.name || 'Unknown',
-      awayTeamLogo: row.away_team?.logo || '',
+      awayTeamLogo: row.away_team?.logo,
       leagueId: row.league?.id || 0,
       leagueName: row.league?.name || 'Unknown',
-      leagueLogo: row.league?.logo || '',
+      leagueLogo: row.league?.logo,
+      leagueCountry: row.league?.country,
       status: row.status,
       matchDate: new Date(row.match_date),
       venue: row.venue || undefined,
       homeScore: row.home_score || undefined,
       awayScore: row.away_score || undefined,
       odds,
+      bettingContractAddress: row.betting_contract_address || undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     });
@@ -242,6 +261,7 @@ export class SupabaseMatchRepository implements IMatchRepository {
         draw: json.odds.draw,
         away_win: json.odds.awayWin,
       } : null,
+      betting_contract_address: json.bettingContractAddress,
       created_at: json.createdAt,
       updated_at: json.updatedAt,
     };

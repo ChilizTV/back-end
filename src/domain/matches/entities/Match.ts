@@ -1,20 +1,23 @@
 export interface MatchProps {
   id: number;
+  apiFootballId: number;
   homeTeamId: number;
   homeTeamName: string;
-  homeTeamLogo: string;
+  homeTeamLogo?: string;
   awayTeamId: number;
   awayTeamName: string;
-  awayTeamLogo: string;
+  awayTeamLogo?: string;
   leagueId: number;
   leagueName: string;
-  leagueLogo: string;
+  leagueLogo?: string;
+  leagueCountry?: string;
   status: string;
   matchDate: Date;
   venue?: string;
   homeScore?: number;
   awayScore?: number;
   odds?: MatchOdds;
+  bettingContractAddress?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,6 +83,10 @@ export class Match {
     return this.props.matchDate;
   }
 
+  getBettingContractAddress(): string | undefined {
+    return this.props.bettingContractAddress;
+  }
+
   toJSON(): any {
     return {
       id: this.props.id,
@@ -105,6 +112,7 @@ export class Match {
         ? { home: this.props.homeScore, away: this.props.awayScore }
         : null,
       odds: this.props.odds,
+      bettingContractAddress: this.props.bettingContractAddress,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
     };

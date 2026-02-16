@@ -30,6 +30,10 @@ export class WaitlistEntry {
     return this.props.email;
   }
 
+  getWalletAddress(): string | undefined {
+    return this.props.walletAddress;
+  }
+
   hasAccess(): boolean {
     return this.props.hasAccess;
   }

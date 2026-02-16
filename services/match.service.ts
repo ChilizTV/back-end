@@ -5,7 +5,7 @@ import { SupabaseMatch, MatchSyncResult } from '../models/supabase-match.model';
 import axios from 'axios';
 import { config } from 'dotenv';
 import { bettingDeploymentService, MarketSetupOdds } from './betting-match-deployment.service';
-import { marketOddsService } from './market-odds.service';
+// import { marketOddsService } from './market-odds.service'; // Deleted - migrated to MarketOddsAdapter
 
 config();
 
@@ -665,14 +665,15 @@ export class MatchService {
                 const addr = (row as any).betting_contract_address;
                 const odds = (row as any).odds as ExtendedOdds | null;
                 if (addr && typeof addr === 'string' && addr.trim() !== '' && odds) {
-                    try {
-                        const updated = await marketOddsService.syncOddsForMatch(addr, odds);
-                        if (updated > 0) {
-                            console.log(`   📊 Odds synced on-chain for match ${(row as any).api_football_id}: ${updated} market(s) updated`);
-                        }
-                    } catch (err: any) {
-                        console.warn(`   ⚠️ Odds sync failed for match ${(row as any).api_football_id}:`, err?.message ?? err);
-                    }
+                    // TODO: Use MarketOddsAdapter instead (Phase 3 migration)
+                    // try {
+                    //     const updated = await marketOddsService.syncOddsForMatch(addr, odds);
+                    //     if (updated > 0) {
+                    //         console.log(`   📊 Odds synced on-chain for match ${(row as any).api_football_id}: ${updated} market(s) updated`);
+                    //     }
+                    // } catch (err: any) {
+                    //     console.warn(`   ⚠️ Odds sync failed for match ${(row as any).api_football_id}:`, err?.message ?? err);
+                    // }
                 }
             }
 

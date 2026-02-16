@@ -1,14 +1,9 @@
+import 'reflect-metadata';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from "cors";
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { MatchController } from './controllers/match.controller';
-import { ChatController } from './controllers/chat.controller';
-import { StreamController } from './controllers/stream.controller';
-import { WaitlistController } from './controllers/waitlist.controller';
-import { predictionController } from './controllers/prediction.controller';
-import { StreamWalletController } from './controllers/stream-wallet.controller';
 import { streamService } from './services/stream.service';
 import { streamWalletService } from './services/stream-wallet.service';
 import { bettingEventIndexerService } from './services/betting-event-indexer.service';
@@ -19,13 +14,19 @@ import { startPredictionSettlementCron } from './cron/settle-predictions.cron';
 import { startResolveMarketsCron } from './cron/resolve-markets.cron';
 import { config } from 'dotenv';
 import * as path from 'path';
-import './config/supabase'; // Initialize Supabase
+import './config/supabase';
 import { securityHeadersMiddleware } from './src/infrastructure/config/security.config';
 import { env } from './src/infrastructure/config/environment';
 import { errorHandler } from './src/presentation/http/middlewares/error-handler.middleware';
 import { requestLogger } from './src/infrastructure/logging/middlewares/request-logger.middleware';
 import { logger } from './src/infrastructure/logging/logger';
 import { authRoutes } from './src/presentation/http/routes/auth.routes';
+import { predictionRoutes } from './src/presentation/http/routes/prediction.routes';
+import { matchRoutes } from './src/presentation/http/routes/match.routes';
+import { chatRoutes } from './src/presentation/http/routes/chat.routes';
+import { waitlistRoutes } from './src/presentation/http/routes/waitlist.routes';
+import { streamRoutes } from './src/presentation/http/routes/stream.routes';
+import { streamWalletRoutes } from './src/presentation/http/routes/stream-wallet.routes';
 import { authenticate } from './src/presentation/http/middlewares/authentication.middleware';
 import {
   globalLimiter,
@@ -33,8 +34,10 @@ import {
   predictionsLimiter,
   chatLimiter,
 } from './src/presentation/http/middlewares/rate-limit.middleware';
+import { setupDependencyInjection } from './src/infrastructure/config/di-container';
 
 config();
+setupDependencyInjection();
 
 const app = express();
 const server = http.createServer(app);
@@ -107,19 +110,13 @@ app.get('/health', (req, res) => {
 // Global authentication middleware - all routes below require JWT
 app.use(authenticate);
 
-const matchController = new MatchController();
-const chatController = new ChatController();
-const streamController = new StreamController();
-const waitlistController = new WaitlistController();
-const streamWalletController = new StreamWalletController();
+app.use('/matches', matchRoutes);
+app.use('/chat', chatLimiter, chatRoutes);
+app.use('/stream', streamRoutes);
+app.use('/waitlist', waitlistRoutes);
+app.use('/stream-wallet', streamWalletRoutes);
 
-app.use('/matches', matchController.getRouter());
-app.use('/chat', chatLimiter, chatController.getRouter());
-app.use('/stream', streamController.getRouter());
-app.use('/waitlist', waitlistController.getRouter());
-app.use('/stream-wallet', streamWalletController.router);
-
-app.use('/predictions', predictionsLimiter, predictionController.getRouter());
+app.use('/predictions', predictionsLimiter, predictionRoutes);
 
 app.get('/supabase-status', (req, res) => {
     res.json({ 

@@ -11,12 +11,12 @@
 
 import * as readline from 'readline';
 import { config } from 'dotenv';
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import {
     bettingDeploymentService,
     type MarketSetupOdds,
 } from '../services/betting-match-deployment.service';
-import type { ExtendedOdds } from '../models/ApiFootball.model';
+import type { ExtendedOdds } from '../src/infrastructure/external/types/ApiFootball.types';
 
 config();
 

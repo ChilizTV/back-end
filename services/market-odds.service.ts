@@ -8,10 +8,10 @@
 import { createWalletClient, createPublicClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { chiliz } from 'viem/chains';
-import { chilizConfig, networkType } from '../config/chiliz.config';
-import { baseSepolia } from '../utils/chains';
-import { FOOTBALL_MATCH_ABI } from '../utils/abis';
-import type { ExtendedOdds } from '../models/ApiFootball.model';
+import { chilizConfig, networkType } from '../src/infrastructure/config/chiliz.config';
+import { baseSepolia } from '../src/infrastructure/blockchain/chains';
+import { FOOTBALL_MATCH_ABI } from '../src/infrastructure/blockchain/abis';
+import type { ExtendedOdds } from '../src/infrastructure/external/types/ApiFootball.types';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
 

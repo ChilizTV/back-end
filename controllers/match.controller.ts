@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { MatchService } from '../services/match.service';
 import { ServiceResult, ServiceErrorCode } from '../services/service.result';
-import { MatchWithOdds } from '../models/ApiFootball.model';
+import { MatchWithOdds } from '../src/infrastructure/external/types/ApiFootball.types';
 import { MatchStats, MatchSyncResult } from '../models/supabase-match.model';
 
 export class MatchController {

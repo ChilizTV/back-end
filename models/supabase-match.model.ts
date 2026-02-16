@@ -1,4 +1,4 @@
-import { ExtendedOdds, MatchWithOdds } from './ApiFootball.model';
+import { ExtendedOdds, MatchWithOdds } from '../src/infrastructure/external/types/ApiFootball.types';
 
 // Supabase Match interface (corresponds to database schema)
 export interface SupabaseMatch {

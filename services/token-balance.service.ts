@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ServiceResult } from './service.result';
 import { createPublicClient, http, defineChain } from 'viem';
 import { chiliz } from 'viem/chains';
-import { chilizConfig, ChilizToken, networkType } from '../config/chiliz.config';
+import { chilizConfig, ChilizToken, networkType } from '../src/infrastructure/config/chiliz.config';
 
 export interface TokenBalance {
     token: ChilizToken;

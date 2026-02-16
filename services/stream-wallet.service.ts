@@ -1,7 +1,7 @@
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import { createPublicClient, http, parseAbiItem, Log, defineChain } from 'viem';
 import { chiliz } from 'viem/chains';
-import { chilizConfig, networkType } from '../config/chiliz.config';
+import { chilizConfig, networkType } from '../src/infrastructure/config/chiliz.config';
 import { 
     Donation, 
     Subscription, 

@@ -1,4 +1,4 @@
-import { MessageType, SystemMessageType, BetType } from '../enums';
+import { MessageType, SystemMessageType, BetType } from '../src/shared/enums';
 
 // Base message types
 export interface ChatMessage {

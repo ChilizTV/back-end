@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';

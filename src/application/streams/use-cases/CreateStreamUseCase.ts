@@ -1,0 +1,25 @@
+import { injectable, inject } from 'tsyringe';
+import { Stream } from '../../../domain/streams/entities/Stream';
+import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { CreateStreamDto } from '../dto/CreateStreamDto';
+
+@injectable()
+export class CreateStreamUseCase {
+  constructor(
+    @inject('IStreamRepository')
+    private readonly streamRepository: IStreamRepository
+  ) {}
+
+  async execute(dto: CreateStreamDto): Promise<Stream> {
+    const stream = Stream.create({
+      matchId: dto.matchId,
+      streamerId: dto.streamerId,
+      streamerName: dto.streamerName,
+      streamKey: dto.streamKey,
+      isLive: true,
+      viewerCount: 0,
+    });
+
+    return await this.streamRepository.save(stream);
+  }
+}

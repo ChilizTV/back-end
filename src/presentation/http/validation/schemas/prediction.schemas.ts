@@ -57,7 +57,7 @@ export const createPredictionSchema = z.object({
 });
 
 /**
- * Schema for GET /predictions/user/:userId
+ * Schema for GET /predictions/:userId
  *
  * Retrieves predictions for a specific user with optional filtering
  */
@@ -66,6 +66,7 @@ export const getUserPredictionsSchema = z.object({
     userId: uuidSchema,
   }),
   query: paginationSchema.extend({
+    walletAddress: ethereumAddressSchema,
     status: predictionStatusSchema.optional(),
   }),
 });
@@ -78,6 +79,20 @@ export const getUserPredictionsSchema = z.object({
 export const getPredictionByIdSchema = z.object({
   params: z.object({
     predictionId: uuidSchema,
+  }),
+});
+
+/**
+ * Schema for GET /predictions/stats/:userId
+ *
+ * Retrieves prediction stats for a user
+ */
+export const getUserStatsSchema = z.object({
+  params: z.object({
+    userId: uuidSchema,
+  }),
+  query: z.object({
+    walletAddress: ethereumAddressSchema,
   }),
 });
 

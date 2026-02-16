@@ -7,10 +7,10 @@
 import { createWalletClient, createPublicClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { chiliz } from 'viem/chains';
-import { supabase } from '../config/supabase';
-import { chilizConfig, networkType } from '../config/chiliz.config';
-import { baseSepolia } from '../utils/chains';
-import { FOOTBALL_MATCH_ABI } from '../utils/abis';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
+import { chilizConfig, networkType } from '../src/infrastructure/config/chiliz.config';
+import { baseSepolia } from '../src/infrastructure/blockchain/chains';
+import { FOOTBALL_MATCH_ABI } from '../src/infrastructure/blockchain/abis';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;
 

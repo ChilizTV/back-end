@@ -1,6 +1,6 @@
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import { ServiceResult } from './service.result';
-import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds, MatchWithOdds } from '../models/ApiFootball.model';
+import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds, MatchWithOdds } from '../src/infrastructure/external/types/ApiFootball.types';
 import { SupabaseMatch, MatchSyncResult } from '../models/supabase-match.model';
 import axios from 'axios';
 import { config } from 'dotenv';

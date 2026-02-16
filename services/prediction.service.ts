@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import { ServiceResult, ServiceErrorCode } from './service.result';
 import { 
     Prediction, 

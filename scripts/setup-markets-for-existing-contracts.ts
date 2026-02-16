@@ -9,12 +9,12 @@
  */
 
 import { config } from 'dotenv';
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import {
   bettingDeploymentService,
   MarketSetupOdds,
 } from '../services/betting-match-deployment.service';
-import { ExtendedOdds } from '../models/ApiFootball.model';
+import { ExtendedOdds } from '../src/infrastructure/external/types/ApiFootball.types';
 
 config();
 

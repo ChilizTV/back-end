@@ -4,12 +4,12 @@
  * Replaces frontend → backend call for saving predictions.
  */
 
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import { createPublicClient, http, parseAbiItem, Log, defineChain } from 'viem';
 import { chiliz } from 'viem/chains';
-import { chilizConfig, networkType } from '../config/chiliz.config';
-import { baseSepolia } from '../utils/chains';
-import { BET_PLACED_EVENT } from '../utils/abis';
+import { chilizConfig, networkType } from '../src/infrastructure/config/chiliz.config';
+import { baseSepolia } from '../src/infrastructure/blockchain/chains';
+import { BET_PLACED_EVENT } from '../src/infrastructure/blockchain/abis';
 
 const POLLING_INTERVAL_MS = 6000;
 

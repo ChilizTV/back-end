@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
 import { ServiceResult } from './service.result';
 import { 
     ChatMessage, 
@@ -12,7 +12,7 @@ import {
     MessageFilter,
     PaginatedResult
 } from '../models/chat.model';
-import { MessageType, SystemMessageType, BetType } from '../enums';
+import { MessageType, SystemMessageType, BetType } from '../src/shared/enums';
 import { TokenBalanceService } from './token-balance.service';
 
 export class ChatService {

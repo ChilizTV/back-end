@@ -3,7 +3,7 @@ import { ChatService } from '../services/chat.service';
 import { TokenBalanceService } from '../services/token-balance.service';
 import { ServiceErrorCode } from '../services/service.result';
 import { ConnectedUser, ChatStats } from '../models/chat.model';
-import { BetType, MessageType } from '../enums';
+import { BetType, MessageType } from '../src/shared/enums';
 
 export class ChatController {
     private router: Router;

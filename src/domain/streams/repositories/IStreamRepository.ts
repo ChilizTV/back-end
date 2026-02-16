@@ -5,5 +5,7 @@ export interface IStreamRepository {
   findById(id: string): Promise<Stream | null>;
   findByStreamKey(streamKey: string): Promise<Stream | null>;
   findActiveStreams(): Promise<Stream[]>;
+  findOldEndedStreams(before: Date): Promise<Stream[]>;
+  delete(id: string): Promise<void>;
   update(stream: Stream): Promise<Stream>;
 }

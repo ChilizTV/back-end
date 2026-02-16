@@ -95,6 +95,18 @@ export class Prediction {
     return this.props.walletAddress;
   }
 
+  getMatchId(): number {
+    return this.props.matchId;
+  }
+
+  getPredictionType(): string {
+    return this.props.predictionType;
+  }
+
+  getPredictionValue(): string {
+    return this.props.predictionValue;
+  }
+
   getTransactionHash(): TransactionHash {
     return this.props.transactionHash;
   }

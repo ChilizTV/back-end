@@ -84,6 +84,34 @@ export class SupabaseStreamRepository implements IStreamRepository {
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }
 
+  async findOldEndedStreams(before: Date): Promise<Stream[]> {
+    const { data: rows, error } = await supabase
+      .from('streams')
+      .select('*')
+      .eq('is_live', false)
+      .not('ended_at', 'is', null)
+      .lt('ended_at', before.toISOString());
+
+    if (error) {
+      logger.error('Failed to find old ended streams', { error: error.message });
+      throw new Error('Failed to find old ended streams');
+    }
+
+    return rows ? rows.map(row => this.toDomain(row)) : [];
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('streams')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      logger.error('Failed to delete stream', { error: error.message, id });
+      throw new Error('Failed to delete stream');
+    }
+  }
+
   async update(stream: Stream): Promise<Stream> {
     const row = this.toRow(stream);
 

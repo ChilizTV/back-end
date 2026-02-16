@@ -5,6 +5,7 @@ import { SupabasePredictionRepository } from '../persistence/repositories/Supaba
 import { CreatePredictionUseCase } from '../../application/predictions/use-cases/CreatePredictionUseCase';
 import { GetUserPredictionsUseCase } from '../../application/predictions/use-cases/GetUserPredictionsUseCase';
 import { GetUserStatsUseCase } from '../../application/predictions/use-cases/GetUserStatsUseCase';
+import { SettlePredictionsUseCase } from '../../application/predictions/use-cases/SettlePredictionsUseCase';
 import { PredictionController } from '../../presentation/http/controllers/prediction.controller';
 import { IMatchRepository } from '../../domain/matches/repositories/IMatchRepository';
 import { SupabaseMatchRepository } from '../persistence/repositories/SupabaseMatchRepository';
@@ -38,6 +39,7 @@ import { CreateStreamUseCase } from '../../application/streams/use-cases/CreateS
 import { GetActiveStreamsUseCase } from '../../application/streams/use-cases/GetActiveStreamsUseCase';
 import { EndStreamUseCase } from '../../application/streams/use-cases/EndStreamUseCase';
 import { UpdateViewerCountUseCase } from '../../application/streams/use-cases/UpdateViewerCountUseCase';
+import { CleanupOldStreamsUseCase } from '../../application/streams/use-cases/CleanupOldStreamsUseCase';
 import { StreamController } from '../../presentation/http/controllers/stream.controller';
 import { IStreamWalletRepository } from '../../domain/stream-wallet/repositories/IStreamWalletRepository';
 import { SupabaseStreamWalletRepository } from '../persistence/repositories/SupabaseStreamWalletRepository';
@@ -54,6 +56,15 @@ import { BettingContractDeploymentAdapter } from '../blockchain/adapters/Betting
 import { FootballApiAdapter } from '../external/adapters/FootballApiAdapter';
 import { ResolveFinishedMatchesUseCase } from '../../application/matches/use-cases/ResolveFinishedMatchesUseCase';
 import { SyncMatchesUseCase } from '../../application/matches/use-cases/SyncMatchesUseCase';
+import { CleanupOldMatchesUseCase } from '../../application/matches/use-cases/CleanupOldMatchesUseCase';
+import { JobScheduler } from '../scheduling/JobScheduler';
+import { SyncMatchesJob } from '../scheduling/jobs/SyncMatchesJob';
+import { ResolveMarketsJob } from '../scheduling/jobs/ResolveMarketsJob';
+import { CleanupStreamsJob } from '../scheduling/jobs/CleanupStreamsJob';
+import { SettlePredictionsJob } from '../scheduling/jobs/SettlePredictionsJob';
+import { DeployMissingContractsCommand } from '../../presentation/cli/commands/DeployMissingContractsCommand';
+import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarketsCommand';
+import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
 
 export function setupDependencyInjection(): void {
   // Infrastructure - Repositories
@@ -89,6 +100,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(CreatePredictionUseCase);
   container.registerSingleton(GetUserPredictionsUseCase);
   container.registerSingleton(GetUserStatsUseCase);
+  container.registerSingleton(SettlePredictionsUseCase);
 
   // Application - Matches Use Cases
   container.registerSingleton(GetAllMatchesUseCase);
@@ -99,6 +111,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetMatchStatsUseCase);
   container.registerSingleton(ResolveFinishedMatchesUseCase);
   container.registerSingleton(SyncMatchesUseCase);
+  container.registerSingleton(CleanupOldMatchesUseCase);
 
   // Application - Chat Use Cases
   container.registerSingleton(JoinRoomUseCase);
@@ -119,6 +132,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetActiveStreamsUseCase);
   container.registerSingleton(EndStreamUseCase);
   container.registerSingleton(UpdateViewerCountUseCase);
+  container.registerSingleton(CleanupOldStreamsUseCase);
 
   // Application - StreamWallet Use Cases
   container.registerSingleton(GetStreamerDonationsUseCase);
@@ -126,6 +140,18 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetStreamerStatsUseCase);
   container.registerSingleton(GetDonorHistoryUseCase);
   container.registerSingleton(GetSubscriberHistoryUseCase);
+
+  // Infrastructure - Scheduling Jobs
+  container.registerSingleton(SyncMatchesJob);
+  container.registerSingleton(ResolveMarketsJob);
+  container.registerSingleton(CleanupStreamsJob);
+  container.registerSingleton(SettlePredictionsJob);
+  container.registerSingleton(JobScheduler);
+
+  // Presentation - CLI Commands
+  container.registerSingleton(DeployMissingContractsCommand);
+  container.registerSingleton(SetupMarketsCommand);
+  container.registerSingleton(TestMatchLifecycleCommand);
 
   // Presentation - Controllers
   container.registerSingleton(PredictionController);

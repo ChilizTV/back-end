@@ -7,11 +7,6 @@ import { Server as SocketIOServer } from 'socket.io';
 import { streamService } from './services/stream.service';
 import { streamWalletService } from './services/stream-wallet.service';
 import { bettingEventIndexerService } from './services/betting-event-indexer.service';
-import { startMatchSyncCron } from './cron/sync-matches.cron';
-import { startStreamCleanupCron } from './cron/cleanup-streams.cron';
-import { MatchService } from './services/match.service';
-import { startPredictionSettlementCron } from './cron/settle-predictions.cron';
-import { startResolveMarketsCron } from './cron/resolve-markets.cron';
 import { config } from 'dotenv';
 import * as path from 'path';
 import './config/supabase';
@@ -34,7 +29,9 @@ import {
   predictionsLimiter,
   chatLimiter,
 } from './src/presentation/http/middlewares/rate-limit.middleware';
-import { setupDependencyInjection } from './src/infrastructure/config/di-container';
+import { setupDependencyInjection, container } from './src/infrastructure/config/di-container';
+import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
+import { JobScheduler } from './src/infrastructure/scheduling/JobScheduler';
 
 config();
 setupDependencyInjection();
@@ -206,8 +203,6 @@ app.get('/', (req, res) => {
 // Global error handler - MUST be after all routes
 app.use(errorHandler);
 
-const matchService = new MatchService();
-
 server.listen(PORT, () => {
     logger.info('Server started successfully', {
         port: PORT,
@@ -222,14 +217,14 @@ server.listen(PORT, () => {
     });
 
     // Clean up matches outside 24h window on startup
-    matchService.cleanupOldMatches().catch(err => {
+    const cleanupUseCase = container.resolve(CleanupOldMatchesUseCase);
+    cleanupUseCase.cleanupOutside24Hours().catch((err: Error) => {
         logger.error('Startup cleanup failed', { error: err.message });
     });
 
-    startMatchSyncCron();
-    startStreamCleanupCron();
-    startPredictionSettlementCron();
-    startResolveMarketsCron();
+    // Start all scheduled jobs
+    const jobScheduler = container.resolve(JobScheduler);
+    jobScheduler.start();
 
     // Start blockchain event indexing for donations and subscriptions
     console.log('🔍 Starting blockchain event indexing...');

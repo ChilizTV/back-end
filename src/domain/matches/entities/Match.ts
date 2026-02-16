@@ -83,6 +83,14 @@ export class Match {
     return this.props.matchDate;
   }
 
+  getHomeScore(): number | undefined {
+    return this.props.homeScore;
+  }
+
+  getAwayScore(): number | undefined {
+    return this.props.awayScore;
+  }
+
   getBettingContractAddress(): string | undefined {
     return this.props.bettingContractAddress;
   }

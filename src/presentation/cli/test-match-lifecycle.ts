@@ -15,6 +15,7 @@ import 'reflect-metadata';
 import { config } from 'dotenv';
 import { setupDependencyInjection, container } from '../../infrastructure/config/di-container';
 import { TestMatchLifecycleCommand } from './commands/TestMatchLifecycleCommand';
+import { logger } from '../../infrastructure/logging/logger';
 
 config();
 setupDependencyInjection();
@@ -25,7 +26,7 @@ async function main() {
         await command.execute(process.argv);
         process.exit(0);
     } catch (error) {
-        console.error('💥 Error:', error);
+        logger.error('Error in match lifecycle test', { error: error instanceof Error ? error.message : error });
         process.exit(1);
     }
 }

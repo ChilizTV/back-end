@@ -1,15 +1,11 @@
-/**
- * Betting Event Indexer Service
- * Listens to BetPlaced events from betting contracts and stores them in the database.
- * Replaces frontend → backend call for saving predictions.
- */
-
-import { supabaseClient as supabase } from '../src/infrastructure/database/supabase/client';
-import { createPublicClient, http, parseAbiItem, Log, defineChain } from 'viem';
+import { injectable } from 'tsyringe';
+import { createPublicClient, http, Log } from 'viem';
 import { chiliz } from 'viem/chains';
-import { chilizConfig, networkType } from '../src/infrastructure/config/chiliz.config';
-import { baseSepolia } from '../src/infrastructure/blockchain/chains';
-import { BET_PLACED_EVENT } from '../src/infrastructure/blockchain/abis';
+import { supabaseClient as supabase } from '../../database/supabase/client';
+import { chilizConfig, networkType } from '../../config/chiliz.config';
+import { baseSepolia } from '../chains';
+import { BET_PLACED_EVENT } from '../abis';
+import { logger } from '../../logging/logger';
 
 const POLLING_INTERVAL_MS = 6000;
 
@@ -22,9 +18,14 @@ interface MatchWithContract {
     odds?: { match_winner?: { home?: number; draw?: number; away?: number } } | null;
 }
 
-export class BettingEventIndexerService {
+/**
+ * Betting Event Indexer
+ * Listens to blockchain events for bet placements and settlements
+ */
+@injectable()
+export class BettingEventIndexer {
     private publicClient: ReturnType<typeof createPublicClient>;
-    private isIndexing = false;
+    private isRunning = false;
     private lastIndexedBlock: bigint = BigInt(0);
     private pollingTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -34,27 +35,47 @@ export class BettingEventIndexerService {
             chain,
             transport: http(chilizConfig.rpcUrl)
         });
-        console.log(`🔧 BettingEventIndexerService initialized on ${networkType}`);
+        logger.info('BettingEventIndexer initialized', { network: networkType });
     }
 
-    async startEventIndexing(): Promise<void> {
-        if (this.isIndexing) {
-            console.log('⚠️ Betting event indexing already running');
+    async start(): Promise<void> {
+        if (this.isRunning) {
+            logger.warn('BettingEventIndexer already running');
             return;
         }
 
-        console.log('🎯 Starting Betting event indexing...');
-        this.isIndexing = true;
+        logger.info('Starting Betting event indexing');
+        this.isRunning = true;
 
         try {
             const currentBlock = await this.publicClient.getBlockNumber();
             this.lastIndexedBlock = currentBlock - BigInt(100);
             await this.indexHistoricalEvents();
             this.startPollingNewEvents();
+
+            logger.info('Betting event indexing started successfully');
         } catch (error) {
-            console.error('❌ Error starting betting event indexing:', error);
-            this.isIndexing = false;
+            this.isRunning = false;
+            logger.error('Failed to start Betting event indexing', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            throw error;
         }
+    }
+
+    stop(): void {
+        if (!this.isRunning) {
+            return;
+        }
+
+        logger.info('Stopping Betting event indexing');
+
+        if (this.pollingTimer) {
+            clearInterval(this.pollingTimer);
+            this.pollingTimer = null;
+        }
+
+        this.isRunning = false;
     }
 
     private async getBettingContracts(): Promise<MatchWithContract[]> {
@@ -67,7 +88,6 @@ export class BettingEventIndexerService {
         return data as MatchWithContract[];
     }
 
-    /** Get odds for WINNER market by selection (0=home, 1=draw, 2=away). Uses DB odds so dashboard shows correct cote per outcome. */
     private getOddsForSelection(selection: number, match: MatchWithContract): number | null {
         const mw = match.odds?.match_winner;
         if (!mw) return null;
@@ -80,7 +100,7 @@ export class BettingEventIndexerService {
     private async indexHistoricalEvents(): Promise<void> {
         const matches = await this.getBettingContracts();
         if (matches.length === 0) {
-            console.log('📋 No betting contracts to index');
+            logger.info('No betting contracts to index');
             return;
         }
 
@@ -98,19 +118,21 @@ export class BettingEventIndexerService {
             });
 
             if (logs.length > 0) {
-                console.log(`📊 Found ${logs.length} historical BetPlaced event(s)`);
+                logger.info('Found historical BetPlaced events', { count: logs.length });
                 for (const log of logs) {
                     await this.indexBetPlacedEvent(log as any, matches);
                 }
             }
             this.lastIndexedBlock = toBlock;
         } catch (error) {
-            console.error('❌ Error indexing historical betting events:', error);
+            logger.error('Error indexing historical betting events', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     }
 
     private startPollingNewEvents(): void {
-        console.log(`👀 Polling for new BetPlaced events every ${POLLING_INTERVAL_MS / 1000}s...`);
+        logger.info('Polling for new BetPlaced events', { intervalMs: POLLING_INTERVAL_MS });
 
         this.pollingTimer = setInterval(async () => {
             try {
@@ -132,25 +154,18 @@ export class BettingEventIndexerService {
                 });
 
                 if (logs.length > 0) {
-                    console.log(`📥 ${logs.length} new BetPlaced event(s) detected`);
+                    logger.info('New BetPlaced events detected', { count: logs.length });
                     for (const log of logs) {
                         await this.indexBetPlacedEvent(log as any, matches);
                     }
                 }
                 this.lastIndexedBlock = toBlock;
             } catch (error) {
-                console.error('❌ Error polling BetPlaced events:', error);
+                logger.error('Error polling BetPlaced events', {
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
             }
         }, POLLING_INTERVAL_MS);
-    }
-
-    stopEventIndexing(): void {
-        if (this.pollingTimer) {
-            clearInterval(this.pollingTimer);
-            this.pollingTimer = null;
-        }
-        this.isIndexing = false;
-        console.log('⏹️ Betting event indexing stopped');
     }
 
     private getMatchForContract(contractAddress: string, matches: MatchWithContract[]): MatchWithContract | undefined {
@@ -198,7 +213,7 @@ export class BettingEventIndexerService {
             const contractAddress = (typeof address === 'string' ? address : address?.address) ?? address;
             const match = this.getMatchForContract(contractAddress, matches);
             if (!match) {
-                console.warn(`⚠️ No match found for contract ${contractAddress}`);
+                logger.warn('No match found for contract', { contractAddress });
                 return;
             }
 
@@ -209,7 +224,7 @@ export class BettingEventIndexerService {
                 .maybeSingle();
 
             if (existing) {
-                console.log(`⏭️ Bet ${transactionHash.slice(0, 10)}... already indexed`);
+                logger.debug('Bet already indexed', { txHash: transactionHash.slice(0, 10) });
                 return;
             }
 
@@ -218,7 +233,6 @@ export class BettingEventIndexerService {
             const selectionNum = Number(selection);
             const { subType, team } = this.selectionToPrediction(selectionNum, match);
 
-            // Use DB odds for this selection (home/draw/away) so dashboard shows correct cote; contract emits single "current" odds per market
             const oddsForSelection = this.getOddsForSelection(selectionNum, match);
             const oddsToStore = oddsForSelection ?? (oddsX10000 != null ? Number(oddsX10000) / 10000 : 2.0);
 
@@ -241,11 +255,11 @@ export class BettingEventIndexerService {
             });
 
             if (predError) {
-                console.error('❌ Error inserting prediction:', predError);
+                logger.error('Error inserting prediction', { error: predError.message });
                 return;
             }
 
-            console.log(`✅ Indexed bet: ${transactionHash.slice(0, 10)}... (${amountCHZ.toFixed(4)} CHZ on ${team})`);
+            logger.info('Indexed bet', { txHash: transactionHash.slice(0, 10), amount: amountCHZ.toFixed(4), team });
 
             await this.insertBetSystemMessage(
                 match.api_football_id,
@@ -255,7 +269,9 @@ export class BettingEventIndexerService {
                 team
             );
         } catch (error) {
-            console.error('❌ Error indexing BetPlaced event:', error);
+            logger.error('Error indexing BetPlaced event', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     }
 
@@ -267,7 +283,6 @@ export class BettingEventIndexerService {
         selection: string
     ): Promise<void> {
         try {
-            // Format aligned with donation (🎁) and subscription (⭐) for consistent chat design
             const message = `🎯 ${displayName} bet ${amountFormatted} CHZ on ${selection}`;
 
             const { error } = await supabase.from('chat_messages').insert({
@@ -282,14 +297,14 @@ export class BettingEventIndexerService {
             });
 
             if (error) {
-                console.error('❌ Failed to insert bet chat message:', error.message);
+                logger.error('Failed to insert bet chat message', { error: error.message });
             } else {
-                console.log(`💬 Bet system message posted for match ${matchId}`);
+                logger.info('Bet system message posted', { matchId });
             }
         } catch (err) {
-            console.error('❌ Error inserting bet chat message:', err);
+            logger.error('Error inserting bet chat message', {
+                error: err instanceof Error ? err.message : 'Unknown error'
+            });
         }
     }
 }
-
-export const bettingEventIndexerService = new BettingEventIndexerService();

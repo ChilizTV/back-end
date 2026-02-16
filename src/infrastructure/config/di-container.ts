@@ -65,6 +65,11 @@ import { SettlePredictionsJob } from '../scheduling/jobs/SettlePredictionsJob';
 import { DeployMissingContractsCommand } from '../../presentation/cli/commands/DeployMissingContractsCommand';
 import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarketsCommand';
 import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
+import { SocketServer } from '../../presentation/websocket/SocketServer';
+import { StreamSocketHandler } from '../../presentation/websocket/handlers/StreamSocketHandler';
+import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
+import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
+import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
 
 export function setupDependencyInjection(): void {
   // Infrastructure - Repositories
@@ -152,6 +157,15 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(DeployMissingContractsCommand);
   container.registerSingleton(SetupMarketsCommand);
   container.registerSingleton(TestMatchLifecycleCommand);
+
+  // Presentation - WebSocket
+  container.registerSingleton(SocketServer);
+  container.registerSingleton(StreamSocketHandler);
+
+  // Infrastructure - Blockchain Indexers
+  container.registerSingleton(BlockchainEventListener);
+  container.registerSingleton(StreamWalletIndexer);
+  container.registerSingleton(BettingEventIndexer);
 
   // Presentation - Controllers
   container.registerSingleton(PredictionController);

@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
+import { logger } from '../logging/logger';
 
 config();
 
@@ -215,6 +216,8 @@ export const chilizConfig: ChilizNetworkConfig = NETWORK === 'mainnet' ? MAINNET
 
 export const networkType: 'testnet' | 'mainnet' = NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
 
-console.log(`🌐 Chiliz Network Configuration: ${networkType.toUpperCase()}`);
-console.log(`   RPC URL: ${chilizConfig.rpcUrl}`);
-console.log(`   Supported tokens: ${chilizConfig.tokens.length}`);
+logger.info('Chiliz Network Configuration', {
+    network: networkType.toUpperCase(),
+    rpcUrl: chilizConfig.rpcUrl,
+    supportedTokens: chilizConfig.tokens.length
+});

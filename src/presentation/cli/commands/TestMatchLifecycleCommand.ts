@@ -38,15 +38,15 @@ export class TestMatchLifecycleCommand {
     }
 
     private printMenu(): void {
-        console.log('\n─────────────────────────────────────────');
-        console.log(`  TEST MATCH LIFECYCLE (id=${this.TEST_MATCH_ID})`);
-        console.log('─────────────────────────────────────────');
-        console.log('  1  - Create match + deploy contract (status: not started NS)');
-        console.log('  2  - Set match to live (1H, score 0-0)');
-        console.log('  3  - Finish match with score (FT)');
-        console.log('  4  - Show match status');
-        console.log('  q  - Quit');
-        console.log('─────────────────────────────────────────');
+        logger.info('─────────────────────────────────────────');
+        logger.info(`  TEST MATCH LIFECYCLE (id=${this.TEST_MATCH_ID})`);
+        logger.info('─────────────────────────────────────────');
+        logger.info('  1  - Create match + deploy contract (status: not started NS)');
+        logger.info('  2  - Set match to live (1H, score 0-0)');
+        logger.info('  3  - Finish match with score (FT)');
+        logger.info('  4  - Show match status');
+        logger.info('  q  - Quit');
+        logger.info('─────────────────────────────────────────');
     }
 
     private async createTestMatch(): Promise<void> {
@@ -80,7 +80,7 @@ export class TestMatchLifecycleCommand {
         const matchName = `Test Team A vs Test Team B`;
         const ownerAddress = this.deploymentAdapter.getAdminAddress();
 
-        console.log('🎯 Deploying FootballMatch contract...');
+        logger.info('Deploying FootballMatch contract');
         const contractAddress = await this.deploymentAdapter.deployFootballMatch(matchName, ownerAddress);
 
         // Setup markets
@@ -94,9 +94,10 @@ export class TestMatchLifecycleCommand {
         });
         await this.matchRepository.update(matchWithContract);
 
-        console.log('\n✅ Test match created and contract deployed.');
-        console.log(`   api_football_id: ${this.TEST_MATCH_ID}`);
-        console.log(`   contract:        ${contractAddress}`);
+        logger.info('Test match created and contract deployed', {
+            apiFootballId: this.TEST_MATCH_ID,
+            contractAddress
+        });
     }
 
     private async setMatchLive(apiFootballId: number): Promise<void> {
@@ -114,7 +115,7 @@ export class TestMatchLifecycleCommand {
         });
 
         await this.matchRepository.update(updatedMatch);
-        console.log(`✅ Match ${apiFootballId} set to live (1H), score 0-0.`);
+        logger.info('Match set to live', { apiFootballId, period: '1H', score: '0-0' });
     }
 
     private async setMatchFinished(apiFootballId: number, homeScore: number, awayScore: number): Promise<void> {
@@ -132,8 +133,12 @@ export class TestMatchLifecycleCommand {
         });
 
         await this.matchRepository.update(updatedMatch);
-        console.log(`✅ Match ${apiFootballId} set to finished (FT), score ${homeScore}-${awayScore}.`);
-        console.log('   The sync-matches cron will resolve markets on-chain right after the next sync run.');
+        logger.info('Match set to finished', {
+            apiFootballId,
+            status: 'FT',
+            score: `${homeScore}-${awayScore}`,
+            note: 'The sync-matches cron will resolve markets on-chain after next sync run'
+        });
     }
 
     private async showStatus(apiFootballId: number): Promise<void> {
@@ -143,11 +148,13 @@ export class TestMatchLifecycleCommand {
         }
 
         const matchJson = match.toJSON();
-        console.log('📋 Match:', matchJson.homeTeam.name, 'vs', matchJson.awayTeam.name);
-        console.log('   api_football_id:', matchJson.apiFootballId);
-        console.log('   status:         ', matchJson.status);
-        console.log('   score:          ', matchJson.homeScore ?? '-', '-', matchJson.awayScore ?? '-');
-        console.log('   contract:       ', matchJson.bettingContractAddress ?? '(none)');
+        logger.info('Match status', {
+            match: `${matchJson.homeTeam.name} vs ${matchJson.awayTeam.name}`,
+            apiFootballId: matchJson.apiFootballId,
+            status: matchJson.status,
+            score: `${matchJson.homeScore ?? '-'} - ${matchJson.awayScore ?? '-'}`,
+            contract: matchJson.bettingContractAddress ?? '(none)'
+        });
     }
 
     async executeInteractive(): Promise<void> {
@@ -156,7 +163,7 @@ export class TestMatchLifecycleCommand {
             const choice = await this.ask('Your choice (1/2/3/4/q): ');
 
             if (choice === 'q' || choice === 'Q') {
-                console.log('Goodbye.');
+                logger.info('Goodbye');
                 return;
             }
 
@@ -171,17 +178,17 @@ export class TestMatchLifecycleCommand {
                     const h = parseInt(parts[0] ?? '0', 10);
                     const a = parseInt(parts[1] ?? '0', 10);
                     if (Number.isNaN(h) || Number.isNaN(a)) {
-                        console.log('❌ Enter two numbers (e.g. 2 1).');
+                        logger.warn('Enter two numbers (e.g. 2 1)');
                     } else {
                         await this.setMatchFinished(this.TEST_MATCH_ID, h, a);
                     }
                 } else if (choice === '4') {
                     await this.showStatus(this.TEST_MATCH_ID);
                 } else {
-                    console.log('Invalid choice. Type 1, 2, 3, 4 or q.');
+                    logger.warn('Invalid choice. Type 1, 2, 3, 4 or q');
                 }
             } catch (err: any) {
-                console.error('❌ Error:', err?.message ?? err);
+                logger.error('Error in interactive menu', { error: err?.message ?? err });
             }
         }
     }
@@ -235,13 +242,13 @@ export class TestMatchLifecycleCommand {
                 break;
 
             default:
-                console.log('Usage:');
-                console.log('  npx ts-node src/presentation/cli/test-match-lifecycle.ts           # Interactive menu');
-                console.log('  npx ts-node src/presentation/cli/test-match-lifecycle.ts create');
-                console.log('  npx ts-node src/presentation/cli/test-match-lifecycle.ts live [id]');
-                console.log('  npx ts-node src/presentation/cli/test-match-lifecycle.ts finished [id] <home> <away>');
-                console.log('  npx ts-node src/presentation/cli/test-match-lifecycle.ts status [id]');
-                console.log(`\n[id] default = ${this.TEST_MATCH_ID}`);
+                logger.info('Usage:');
+                logger.info('  npx ts-node src/presentation/cli/test-match-lifecycle.ts           # Interactive menu');
+                logger.info('  npx ts-node src/presentation/cli/test-match-lifecycle.ts create');
+                logger.info('  npx ts-node src/presentation/cli/test-match-lifecycle.ts live [id]');
+                logger.info('  npx ts-node src/presentation/cli/test-match-lifecycle.ts finished [id] <home> <away>');
+                logger.info('  npx ts-node src/presentation/cli/test-match-lifecycle.ts status [id]');
+                logger.info(`[id] default = ${this.TEST_MATCH_ID}`);
                 throw new Error('Invalid command');
         }
     }

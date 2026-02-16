@@ -211,7 +211,7 @@ echo "SUPABASE_ANON_KEY=your_supabase_anon_key" >> .env
 4. **Set up Supabase Database**
    - Go to your Supabase project dashboard
    - Navigate to SQL Editor
-   - Run the SQL scripts from `database/schema.sql` and `database/streams-schema.sql`
+   - Run the SQL scripts from `src/infrastructure/database/schemas/schema.sql` and `src/infrastructure/database/schemas/streams-schema.sql`
 
 5. **Test Supabase connection**
 ```bash

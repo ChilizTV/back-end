@@ -4,34 +4,16 @@ import bodyParser from 'body-parser';
 import cors from "cors";
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { streamService } from './services/stream.service';
-import { streamWalletService } from './services/stream-wallet.service';
-import { bettingEventIndexerService } from './services/betting-event-indexer.service';
 import { config } from 'dotenv';
 import * as path from 'path';
 import './config/supabase';
-import { securityHeadersMiddleware } from './src/infrastructure/config/security.config';
-import { env } from './src/infrastructure/config/environment';
-import { errorHandler } from './src/presentation/http/middlewares/error-handler.middleware';
-import { requestLogger } from './src/infrastructure/logging/middlewares/request-logger.middleware';
-import { logger } from './src/infrastructure/logging/logger';
-import { authRoutes } from './src/presentation/http/routes/auth.routes';
-import { predictionRoutes } from './src/presentation/http/routes/prediction.routes';
-import { matchRoutes } from './src/presentation/http/routes/match.routes';
-import { chatRoutes } from './src/presentation/http/routes/chat.routes';
-import { waitlistRoutes } from './src/presentation/http/routes/waitlist.routes';
-import { streamRoutes } from './src/presentation/http/routes/stream.routes';
-import { streamWalletRoutes } from './src/presentation/http/routes/stream-wallet.routes';
-import { authenticate } from './src/presentation/http/middlewares/authentication.middleware';
-import {
-  globalLimiter,
-  authLimiter,
-  predictionsLimiter,
-  chatLimiter,
-} from './src/presentation/http/middlewares/rate-limit.middleware';
-import { setupDependencyInjection, container } from './src/infrastructure/config/di-container';
+import { securityHeadersMiddleware, env, setupDependencyInjection, container } from './src/infrastructure/config';
+import { logger, requestLogger } from './src/infrastructure/logging';
+import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter } from './src/presentation/http/middlewares';
+import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes } from './src/presentation/http/routes';
+import { SocketServer } from './src/presentation/websocket';
+import { JobScheduler, BlockchainEventListener } from './src/infrastructure/services';
 import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
-import { JobScheduler } from './src/infrastructure/scheduling/JobScheduler';
 
 config();
 setupDependencyInjection();
@@ -124,67 +106,9 @@ app.get('/supabase-status', (req, res) => {
     });
 });
 
-// Socket.IO namespace for streaming
-const streamNamespace = io.of('/stream');
-
-streamNamespace.on('connection', (socket) => {
-    console.log(`📡 Client connected to /stream namespace: ${socket.id}`);
-
-    socket.on('stream:start', async (data: { streamKey: string }) => {
-        console.log(`🎬 Stream start requested for streamKey: ${data.streamKey}`);
-        console.log(`📋 Full data received:`, JSON.stringify(data));
-        if (!data || !data.streamKey) {
-            console.error('❌ stream:start received without streamKey');
-            console.error('❌ Data received:', data);
-            return;
-        }
-        console.log(`📋 About to call streamService.startStreaming(${data.streamKey})`);
-        try {
-            await streamService.startStreaming(data.streamKey, socket);
-            console.log(`✅ streamService.startStreaming called successfully`);
-        } catch (error) {
-            console.error(`❌ Error in streamService.startStreaming:`, error);
-        }
-    });
-
-    socket.on('stream:data', (data: { streamKey: string; chunk: Buffer | Uint8Array | ArrayBuffer }) => {
-        if (!data.streamKey) {
-            console.error('❌ stream:data received without streamKey');
-            return;
-        }
-        
-        let buffer: Buffer;
-        if (Buffer.isBuffer(data.chunk)) {
-            buffer = data.chunk;
-        } else if (data.chunk instanceof Uint8Array) {
-            buffer = Buffer.from(data.chunk);
-        } else if (data.chunk instanceof ArrayBuffer) {
-            buffer = Buffer.from(new Uint8Array(data.chunk));
-        } else {
-            console.error('❌ Invalid chunk type received');
-            return;
-        }
-        
-        streamService.handleStreamData(data.streamKey, buffer);
-    });
-
-    socket.on('stream:audio', (data: { streamKey: string; audioData: number[] }) => {
-        if (!data.streamKey || !data.audioData) {
-            return; // Skip silently if invalid
-        }
-        
-        streamService.handleStreamAudio(data.streamKey, data.audioData);
-    });
-
-    socket.on('stream:end', (data: { streamKey: string }) => {
-        console.log(`🛑 Stream end requested: ${data.streamKey}`);
-        // The stream will be ended via the REST API
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`📡 Client disconnected from /stream namespace: ${socket.id}`);
-    });
-});
+// Initialize Socket.IO server
+const socketServer = container.resolve(SocketServer);
+socketServer.initialize(io);
 
 app.get('/', (req, res) => {
     res.json({
@@ -226,15 +150,9 @@ server.listen(PORT, () => {
     const jobScheduler = container.resolve(JobScheduler);
     jobScheduler.start();
 
-    // Start blockchain event indexing for donations and subscriptions
-    console.log('🔍 Starting blockchain event indexing...');
-    streamWalletService.startEventIndexing().catch(error => {
-        console.error('❌ Failed to start event indexing:', error);
-    });
-
-    // Start betting event indexing (BetPlaced → predictions + chat)
-    console.log('🎯 Starting betting event indexing...');
-    bettingEventIndexerService.startEventIndexing().catch(error => {
-        console.error('❌ Failed to start betting event indexing:', error);
+    // Start blockchain event listeners
+    const blockchainEventListener = container.resolve(BlockchainEventListener);
+    blockchainEventListener.start().catch((error: Error) => {
+        logger.error('Failed to start blockchain event listeners', { error: error.message });
     });
 });

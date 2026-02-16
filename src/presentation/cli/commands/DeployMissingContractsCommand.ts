@@ -16,7 +16,7 @@ export class DeployMissingContractsCommand {
 
     async execute(): Promise<void> {
         try {
-            console.log('🚀 Searching for matches without betting contract...\n');
+            logger.info('Searching for matches without betting contract');
 
             // Get all matches
             const allMatches = await this.matchRepository.findAll();
@@ -25,11 +25,11 @@ export class DeployMissingContractsCommand {
             const matchesToDeploy = allMatches.filter(m => !m.getBettingContractAddress());
 
             if (matchesToDeploy.length === 0) {
-                console.log('✅ No matches without contract found. All matches already have a contract address.');
+                logger.info('No matches without contract found. All matches already have a contract address.');
                 return;
             }
 
-            console.log(`📋 ${matchesToDeploy.length} match(es) without contract found:\n`);
+            logger.info('Matches without contract found', { count: matchesToDeploy.length });
 
             const ownerAddress = this.deploymentAdapter.getAdminAddress();
             let deployedCount = 0;
@@ -38,7 +38,7 @@ export class DeployMissingContractsCommand {
             for (const match of matchesToDeploy) {
                 const matchJson = match.toJSON();
                 const matchName = `${matchJson.homeTeam.name} vs ${matchJson.awayTeam.name}`;
-                console.log(`\n🎲 [${match.getId()}] ${matchName}`);
+                logger.info('Processing match', { matchId: match.getId(), matchName });
 
                 try {
                     // Deploy contract
@@ -73,7 +73,7 @@ export class DeployMissingContractsCommand {
 
                         await this.matchRepository.update(matchWithContract);
 
-                        console.log(`   ✅ Contract deployed and saved: ${contractAddress}`);
+                        logger.info('Contract deployed and saved', { contractAddress, matchId: match.getId() });
                         deployedCount++;
                     }
 
@@ -81,20 +81,20 @@ export class DeployMissingContractsCommand {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                    console.error(`   ❌ Deployment error: ${errorMessage}`);
+                    logger.error('Deployment error', { error: errorMessage, matchId: match.getId() });
                     failedCount++;
 
                     if (errorMessage.includes('MCOPY') || errorMessage.includes('invalid opcode')) {
-                        console.log('   💡 Network may not support contract opcodes (evmVersion cancun).');
+                        logger.warn('Network may not support contract opcodes (evmVersion cancun)');
                     }
                 }
             }
 
-            console.log('\n📊 Summary:');
-            console.log(`   Deployed successfully: ${deployedCount}`);
-            console.log(`   Failed: ${failedCount}`);
-            console.log(`   Total processed: ${matchesToDeploy.length}`);
-            console.log('\n✅ Command completed.');
+            logger.info('Deployment summary', {
+                deployedSuccessfully: deployedCount,
+                failed: failedCount,
+                totalProcessed: matchesToDeploy.length
+            });
         } catch (error) {
             logger.error('Deploy missing contracts command failed', {
                 error: error instanceof Error ? error.message : 'Unknown error'

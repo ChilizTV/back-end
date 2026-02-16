@@ -16,14 +16,14 @@ export class SetupMarketsCommand {
 
     async execute(): Promise<void> {
         try {
-            console.log('🚀 Searching for contracts without markets...\n');
+            logger.info('Searching for contracts without markets');
 
             // Get all matches with contracts
             const allMatches = await this.matchRepository.findAll();
             const matchesWithContract = allMatches.filter(m => !!m.getBettingContractAddress());
 
             if (matchesWithContract.length === 0) {
-                console.log('✅ No matches with contracts found.');
+                logger.info('No matches with contracts found');
                 return;
             }
 
@@ -36,15 +36,14 @@ export class SetupMarketsCommand {
                 const matchName = `${matchJson.homeTeam.name} vs ${matchJson.awayTeam.name}`;
                 const contractAddress = match.getBettingContractAddress()!;
 
-                console.log(`\n🎲 [${match.getId()}] ${matchName}`);
-                console.log(`   Contract: ${contractAddress}`);
+                logger.info('Processing match', { matchId: match.getId(), matchName, contractAddress });
 
                 try {
                     // Check if markets exist
                     const count = await this.deploymentAdapter.getMarketCount(contractAddress);
 
                     if (count > 0) {
-                        console.log(`   ⏭️  ${count} market(s) already configured, skip.`);
+                        logger.info('Markets already configured, skipping', { count, matchId: match.getId() });
                         skippedCount++;
                         continue;
                     }
@@ -60,23 +59,23 @@ export class SetupMarketsCommand {
                         bttsNo: undefined
                     });
 
-                    console.log(`   ✅ Markets configured`);
+                    logger.info('Markets configured successfully', { matchId: match.getId() });
                     setupCount++;
 
                     // Pause between setups
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                    console.error(`   ❌ Error: ${errorMessage}`);
+                    logger.error('Error setting up markets', { error: errorMessage, matchId: match.getId() });
                     failedCount++;
                 }
             }
 
-            console.log('\n📊 Summary:');
-            console.log(`   Configured: ${setupCount}`);
-            console.log(`   Skipped: ${skippedCount}`);
-            console.log(`   Failed: ${failedCount}`);
-            console.log('\n✅ Completed.');
+            logger.info('Setup markets summary', {
+                configured: setupCount,
+                skipped: skippedCount,
+                failed: failedCount
+            });
         } catch (error) {
             logger.error('Setup markets command failed', {
                 error: error instanceof Error ? error.message : 'Unknown error'

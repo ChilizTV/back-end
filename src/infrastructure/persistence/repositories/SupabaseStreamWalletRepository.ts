@@ -12,17 +12,17 @@ interface DonationRow {
   amount: string;
   message?: string;
   transaction_hash: string;
-  timestamp: string;
+  created_at: string;
 }
 
 interface SubscriptionRow {
   id: string;
   streamer_address: string;
   subscriber_address: string;
-  tier: number;
+  duration_seconds: number;
   amount: string;
-  start_date: string;
-  end_date: string;
+  start_time: string;
+  expiry_time: string;
   transaction_hash: string;
 }
 
@@ -33,7 +33,7 @@ export class SupabaseStreamWalletRepository implements IStreamWalletRepository {
       .from('donations')
       .select('*')
       .eq('streamer_address', streamerAddress.toLowerCase())
-      .order('timestamp', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       logger.error('Failed to find donations by streamer', { error: error.message, streamerAddress });
@@ -48,7 +48,7 @@ export class SupabaseStreamWalletRepository implements IStreamWalletRepository {
       .from('donations')
       .select('*')
       .eq('donor_address', donorAddress.toLowerCase())
-      .order('timestamp', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       logger.error('Failed to find donations by donor', { error: error.message, donorAddress });
@@ -63,7 +63,7 @@ export class SupabaseStreamWalletRepository implements IStreamWalletRepository {
       .from('subscriptions')
       .select('*')
       .eq('streamer_address', streamerAddress.toLowerCase())
-      .order('start_date', { ascending: false });
+      .order('start_time', { ascending: false });
 
     if (error) {
       logger.error('Failed to find subscriptions by streamer', { error: error.message, streamerAddress });
@@ -78,7 +78,7 @@ export class SupabaseStreamWalletRepository implements IStreamWalletRepository {
       .from('subscriptions')
       .select('*')
       .eq('subscriber_address', subscriberAddress.toLowerCase())
-      .order('start_date', { ascending: false });
+      .order('start_time', { ascending: false });
 
     if (error) {
       logger.error('Failed to find subscriptions by subscriber', { error: error.message, subscriberAddress });
@@ -118,7 +118,7 @@ export class SupabaseStreamWalletRepository implements IStreamWalletRepository {
       amount: row.amount,
       message: row.message,
       transactionHash: row.transaction_hash,
-      timestamp: new Date(row.timestamp),
+      timestamp: new Date(row.created_at),
     });
   }
 
@@ -127,10 +127,10 @@ export class SupabaseStreamWalletRepository implements IStreamWalletRepository {
       id: row.id,
       streamerAddress: row.streamer_address,
       subscriberAddress: row.subscriber_address,
-      tier: row.tier,
+      durationSeconds: row.duration_seconds,
       amount: row.amount,
-      startDate: new Date(row.start_date),
-      endDate: new Date(row.end_date),
+      startDate: new Date(row.start_time),
+      endDate: new Date(row.expiry_time),
       transactionHash: row.transaction_hash,
     });
   }

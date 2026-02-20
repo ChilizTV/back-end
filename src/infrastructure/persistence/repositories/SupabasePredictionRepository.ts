@@ -95,11 +95,12 @@ export class SupabasePredictionRepository implements IPredictionRepository {
   }
 
   async findPendingForSettlement(): Promise<Prediction[]> {
+    // NOTE: Removed match_start_time check to allow settlement of test matches
+    // todo In production, the SettlePredictionsUseCase checks if match status is 'FT'
     const { data: rows, error } = await supabase
       .from('predictions')
       .select('*')
-      .in('status', [PredictionStatus.PENDING, PredictionStatus.IN_PROGRESS])
-      .lt('match_start_time', new Date().toISOString());
+      .in('status', [PredictionStatus.PENDING, PredictionStatus.IN_PROGRESS]);
 
     if (error) {
       logger.error('Failed to find pending predictions', { error: error.message });

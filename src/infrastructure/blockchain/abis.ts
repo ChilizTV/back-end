@@ -1,5 +1,16 @@
 import { parseAbiItem } from "viem";
 
+// ERC20 ABI for reading token balances
+export const ERC20_ABI = [
+    {
+        type: 'function',
+        name: 'balanceOf',
+        inputs: [{ name: 'account', type: 'address' }],
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view'
+    }
+] as const;
+
 // Minimal ABI for BettingMatchFactory (createFootballMatch)
 export const FACTORY_ABI = [
     {

@@ -11,6 +11,7 @@ export interface MatchProps {
   leagueName: string;
   leagueLogo?: string;
   leagueCountry?: string;
+  season: number;
   status: string;
   matchDate: Date;
   venue?: string;
@@ -98,6 +99,7 @@ export class Match {
   toJSON(): any {
     return {
       id: this.props.id,
+      apiFootballId: this.props.apiFootballId,
       homeTeam: {
         id: this.props.homeTeamId,
         name: this.props.homeTeamName,
@@ -113,6 +115,7 @@ export class Match {
         name: this.props.leagueName,
         logo: this.props.leagueLogo,
       },
+      season: this.props.season,
       status: this.props.status,
       matchDate: this.props.matchDate,
       venue: this.props.venue,

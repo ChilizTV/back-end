@@ -71,21 +71,22 @@ export class SyncMatchesUseCase {
                     const existingMatch = await this.matchRepository.findByApiFootballId(apiMatch.fixture.id);
 
                     if (existingMatch) {
-                        // Update existing match
+                        // Update existing match with fresh data from API
                         const existingJson = existingMatch.toJSON();
                         const updatedMatch = Match.reconstitute({
                             id: existingJson.id,
                             apiFootballId: apiMatch.fixture.id,
-                            homeTeamId: existingJson.homeTeam.id,
+                            homeTeamId: apiMatch.teams.home.id,
                             homeTeamName: apiMatch.teams.home.name,
                             homeTeamLogo: apiMatch.teams.home.logo,
-                            awayTeamId: existingJson.awayTeam.id,
+                            awayTeamId: apiMatch.teams.away.id,
                             awayTeamName: apiMatch.teams.away.name,
                             awayTeamLogo: apiMatch.teams.away.logo,
-                            leagueId: existingJson.league.id,
+                            leagueId: apiMatch.league.id,
                             leagueName: apiMatch.league.name,
                             leagueLogo: apiMatch.league.logo,
                             leagueCountry: apiMatch.league.country,
+                            season: apiMatch.league.season,
                             status: this.mapApiStatus(apiMatch.fixture.status.short),
                             matchDate: new Date(apiMatch.fixture.date),
                             venue: apiMatch.fixture.venue?.name,
@@ -113,20 +114,21 @@ export class SyncMatchesUseCase {
                             }
                         }
                     } else {
-                        // Create new match
+                        // Create new match with data from API
                         const newMatch = Match.create({
                             id: apiMatch.fixture.id, // Use API fixture ID as primary key
                             apiFootballId: apiMatch.fixture.id,
-                            homeTeamId: 0, // Will be set by repository if needed
+                            homeTeamId: apiMatch.teams.home.id,
                             homeTeamName: apiMatch.teams.home.name,
                             homeTeamLogo: apiMatch.teams.home.logo,
-                            awayTeamId: 0, // Will be set by repository if needed
+                            awayTeamId: apiMatch.teams.away.id,
                             awayTeamName: apiMatch.teams.away.name,
                             awayTeamLogo: apiMatch.teams.away.logo,
                             leagueId: apiMatch.league.id,
                             leagueName: apiMatch.league.name,
                             leagueLogo: apiMatch.league.logo,
                             leagueCountry: apiMatch.league.country,
+                            season: apiMatch.league.season,
                             status: this.mapApiStatus(apiMatch.fixture.status.short),
                             matchDate: new Date(apiMatch.fixture.date),
                             venue: apiMatch.fixture.venue?.name,

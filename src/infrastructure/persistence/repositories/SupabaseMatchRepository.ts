@@ -14,6 +14,7 @@ interface MatchRow {
   match_date: string;
   status: string;
   league: any;
+  season: number;
   venue: string | null;
   odds: any;
   betting_contract_address?: string | null;
@@ -31,6 +32,26 @@ export class SupabaseMatchRepository implements IMatchRepository {
 
     if (error) {
       logger.error('Failed to find all matches', { error: error.message });
+      throw new Error('Failed to find matches');
+    }
+
+    return rows ? rows.map(row => this.toDomain(row)) : [];
+  }
+
+  async findWithin24Hours(): Promise<Match[]> {
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const twentyFourHoursAhead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const { data: rows, error } = await supabase
+      .from('matches')
+      .select('*')
+      .gte('match_date', twentyFourHoursAgo.toISOString())
+      .lte('match_date', twentyFourHoursAhead.toISOString())
+      .order('match_date', { ascending: true });
+
+    if (error) {
+      logger.error('Failed to find matches within 24 hours', { error: error.message });
       throw new Error('Failed to find matches');
     }
 
@@ -68,10 +89,16 @@ export class SupabaseMatchRepository implements IMatchRepository {
   }
 
   async findByLeagueId(leagueId: number): Promise<Match[]> {
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const twentyFourHoursAhead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
     const { data: rows, error } = await supabase
       .from('matches')
       .select('*')
       .eq('league->>id', leagueId)
+      .gte('match_date', twentyFourHoursAgo.toISOString())
+      .lte('match_date', twentyFourHoursAhead.toISOString())
       .order('match_date', { ascending: true });
 
     if (error) {
@@ -98,13 +125,15 @@ export class SupabaseMatchRepository implements IMatchRepository {
   }
 
   async findUpcoming(): Promise<Match[]> {
-    const now = new Date().toISOString();
+    const now = new Date();
+    const twentyFourHoursAhead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     const { data: rows, error } = await supabase
       .from('matches')
       .select('*')
       .eq('status', 'NS')
-      .gt('match_date', now)
+      .gt('match_date', now.toISOString())
+      .lte('match_date', twentyFourHoursAhead.toISOString())
       .order('match_date', { ascending: true });
 
     if (error) {
@@ -117,10 +146,18 @@ export class SupabaseMatchRepository implements IMatchRepository {
 
   async save(match: Match): Promise<Match> {
     const row = this.toRow(match);
+    const { id, ...insertRow } = row;
+
+    logger.info('Saving match to database', {
+      apiFootballId: insertRow.api_football_id,
+      homeTeam: insertRow.home_team,
+      awayTeam: insertRow.away_team,
+      league: insertRow.league
+    });
 
     const { data, error } = await supabase
       .from('matches')
-      .insert(row)
+      .insert(insertRow)
       .select()
       .single();
 
@@ -128,6 +165,12 @@ export class SupabaseMatchRepository implements IMatchRepository {
       logger.error('Failed to save match', { error: error.message });
       throw new Error('Failed to save match');
     }
+
+    logger.info('Match saved successfully', {
+      id: data.id,
+      homeTeam: data.home_team,
+      awayTeam: data.away_team
+    });
 
     return this.toDomain(data);
   }
@@ -150,16 +193,18 @@ export class SupabaseMatchRepository implements IMatchRepository {
 
   async update(match: Match): Promise<Match> {
     const row = this.toRow(match);
+    const { id, ...updateRow } = row;
 
+    const json = match.toJSON();
     const { data, error } = await supabase
       .from('matches')
-      .update(row)
-      .eq('id', match.getId())
+      .update(updateRow)
+      .eq('api_football_id', json.apiFootballId)
       .select()
       .single();
 
     if (error) {
-      logger.error('Failed to update match', { error: error.message, id: match.getId() });
+      logger.error('Failed to update match', { error: error.message, apiFootballId: json.apiFootballId });
       throw new Error('Failed to update match');
     }
 
@@ -198,6 +243,10 @@ export class SupabaseMatchRepository implements IMatchRepository {
   }
 
   private toDomain(row: MatchRow): Match {
+    const homeTeam = typeof row.home_team === 'string' ? JSON.parse(row.home_team) : row.home_team;
+    const awayTeam = typeof row.away_team === 'string' ? JSON.parse(row.away_team) : row.away_team;
+    const league = typeof row.league === 'string' ? JSON.parse(row.league) : row.league;
+
     const odds: MatchOdds | undefined = row.odds
       ? {
           homeWin: row.odds.home_win || row.odds.homeWin,
@@ -209,16 +258,17 @@ export class SupabaseMatchRepository implements IMatchRepository {
     return Match.reconstitute({
       id: row.id,
       apiFootballId: row.api_football_id,
-      homeTeamId: row.home_team?.id || 0,
-      homeTeamName: row.home_team?.name || 'Unknown',
-      homeTeamLogo: row.home_team?.logo,
-      awayTeamId: row.away_team?.id || 0,
-      awayTeamName: row.away_team?.name || 'Unknown',
-      awayTeamLogo: row.away_team?.logo,
-      leagueId: row.league?.id || 0,
-      leagueName: row.league?.name || 'Unknown',
-      leagueLogo: row.league?.logo,
-      leagueCountry: row.league?.country,
+      homeTeamId: homeTeam?.id || 0,
+      homeTeamName: homeTeam?.name || 'Unknown',
+      homeTeamLogo: homeTeam?.logo,
+      awayTeamId: awayTeam?.id || 0,
+      awayTeamName: awayTeam?.name || 'Unknown',
+      awayTeamLogo: awayTeam?.logo,
+      leagueId: league?.id || 0,
+      leagueName: league?.name || 'Unknown',
+      leagueLogo: league?.logo,
+      leagueCountry: league?.country,
+      season: row.season,
       status: row.status,
       matchDate: new Date(row.match_date),
       venue: row.venue || undefined,
@@ -233,24 +283,20 @@ export class SupabaseMatchRepository implements IMatchRepository {
 
   private toRow(match: Match): any {
     const json = match.toJSON();
+
+    logger.info('toRow - Converting to database format', {
+      homeTeam: json.homeTeam,
+      awayTeam: json.awayTeam,
+      league: json.league
+    });
+
     return {
       id: json.id,
-      api_football_id: json.id,
-      home_team: {
-        id: json.homeTeam.id,
-        name: json.homeTeam.name,
-        logo: json.homeTeam.logo,
-      },
-      away_team: {
-        id: json.awayTeam.id,
-        name: json.awayTeam.name,
-        logo: json.awayTeam.logo,
-      },
-      league: {
-        id: json.league.id,
-        name: json.league.name,
-        logo: json.league.logo,
-      },
+      api_football_id: json.apiFootballId,
+      home_team: json.homeTeam,
+      away_team: json.awayTeam,
+      league: json.league,
+      season: json.season,
       status: json.status,
       match_date: json.matchDate,
       venue: json.venue,

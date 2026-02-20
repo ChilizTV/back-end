@@ -70,6 +70,10 @@ import { StreamSocketHandler } from '../../presentation/websocket/handlers/Strea
 import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
 import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
 import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
+import { IFanTokenRepository } from '../../domain/fan-tokens/repositories/IFanTokenRepository';
+import { FanTokenAdapter } from '../blockchain/adapters/FanTokenAdapter';
+import { GetUserFanTokenBalancesUseCase } from '../../application/fan-tokens/use-cases/GetUserFanTokenBalancesUseCase';
+import { FanTokensController } from '../../presentation/http/controllers/fan-tokens.controller';
 
 export function setupDependencyInjection(): void {
   // Infrastructure - Repositories
@@ -90,6 +94,9 @@ export function setupDependencyInjection(): void {
   });
   container.register<IStreamWalletRepository>('IStreamWalletRepository', {
     useClass: SupabaseStreamWalletRepository,
+  });
+  container.register<IFanTokenRepository>('IFanTokenRepository', {
+    useClass: FanTokenAdapter,
   });
 
   // Infrastructure - Blockchain Adapters
@@ -146,6 +153,9 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetDonorHistoryUseCase);
   container.registerSingleton(GetSubscriberHistoryUseCase);
 
+  // Application - FanTokens Use Cases
+  container.registerSingleton(GetUserFanTokenBalancesUseCase);
+
   // Infrastructure - Scheduling Jobs
   container.registerSingleton(SyncMatchesJob);
   container.registerSingleton(ResolveMarketsJob);
@@ -175,6 +185,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(AuthController);
   container.registerSingleton(StreamController);
   container.registerSingleton(StreamWalletController);
+  container.registerSingleton(FanTokensController);
 }
 
 export { container };

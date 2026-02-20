@@ -6,7 +6,6 @@ import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from 'dotenv';
 import * as path from 'path';
-import './config/supabase';
 import { securityHeadersMiddleware, env, setupDependencyInjection, container } from './src/infrastructure/config';
 import { logger, requestLogger } from './src/infrastructure/logging';
 import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter } from './src/presentation/http/middlewares';
@@ -15,7 +14,7 @@ import { JobScheduler, BlockchainEventListener } from './src/infrastructure/serv
 import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
 config();
 setupDependencyInjection();
-import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes } from './src/presentation/http/routes';
+import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes } from './src/presentation/http/routes';
 
 const app = express();
 const server = http.createServer(app);
@@ -76,6 +75,7 @@ app.use('/streams', express.static(streamsStaticPath, {
 
 // Public routes (no authentication required)
 app.use('/auth', authLimiter, authRoutes);
+app.use('/waitlist', waitlistRoutes);
 
 app.get('/health', (req, res) => {
     res.json({
@@ -85,14 +85,16 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Public stream routes (no auth needed to view streams)
+app.use('/stream', streamRoutes);
+
 // Global authentication middleware - all routes below require JWT
 app.use(authenticate);
 
 app.use('/matches', matchRoutes);
 app.use('/chat', chatLimiter, chatRoutes);
-app.use('/stream', streamRoutes);
-app.use('/waitlist', waitlistRoutes);
 app.use('/stream-wallet', streamWalletRoutes);
+app.use('/fan-tokens', fanTokensRoutes);
 
 app.use('/predictions', predictionsLimiter, predictionRoutes);
 

@@ -10,6 +10,6 @@ export class GetAllMatchesUseCase {
   ) {}
 
   async execute(): Promise<Match[]> {
-    return await this.matchRepository.findAll();
+    return await this.matchRepository.findWithin24Hours();
   }
 }

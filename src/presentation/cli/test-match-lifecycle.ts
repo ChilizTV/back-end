@@ -11,13 +11,14 @@
  *   npx ts-node src/presentation/cli/test-match-lifecycle.ts status [id]
  */
 
-import 'reflect-metadata';
 import { config } from 'dotenv';
+import { resolve } from 'path';
+config({ path: resolve(__dirname, '../../../.env') });
+import 'reflect-metadata';
 import { setupDependencyInjection, container } from '../../infrastructure/config/di-container';
 import { TestMatchLifecycleCommand } from './commands/TestMatchLifecycleCommand';
 import { logger } from '../../infrastructure/logging/logger';
 
-config();
 setupDependencyInjection();
 
 async function main() {

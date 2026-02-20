@@ -10,11 +10,11 @@ export class GetMatchByIdUseCase {
     private readonly matchRepository: IMatchRepository
   ) {}
 
-  async execute(id: number): Promise<Match> {
-    const match = await this.matchRepository.findById(id);
+  async execute(apiFootballId: number): Promise<Match> {
+    const match = await this.matchRepository.findByApiFootballId(apiFootballId);
 
     if (!match) {
-      throw new NotFoundError('Match', id);
+      throw new NotFoundError('Match', apiFootballId);
     }
 
     return match;

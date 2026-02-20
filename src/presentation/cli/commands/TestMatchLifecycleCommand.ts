@@ -67,6 +67,7 @@ export class TestMatchLifecycleCommand {
             leagueName: 'Test League',
             leagueLogo: '',
             leagueCountry: 'Test',
+            season: new Date().getFullYear(),
             matchDate,
             status: 'NS',
             venue: 'Test Stadium',
@@ -89,8 +90,28 @@ export class TestMatchLifecycleCommand {
         // Update match with contract address
         const matchJson = match.toJSON();
         const matchWithContract = Match.reconstitute({
-            ...matchJson,
-            bettingContractAddress: contractAddress
+            id: matchJson.id,
+            apiFootballId: matchJson.apiFootballId,
+            homeTeamId: matchJson.homeTeam.id,
+            homeTeamName: matchJson.homeTeam.name,
+            homeTeamLogo: matchJson.homeTeam.logo,
+            awayTeamId: matchJson.awayTeam.id,
+            awayTeamName: matchJson.awayTeam.name,
+            awayTeamLogo: matchJson.awayTeam.logo,
+            leagueId: matchJson.league.id,
+            leagueName: matchJson.league.name,
+            leagueLogo: matchJson.league.logo,
+            leagueCountry: matchJson.league.country,
+            season: matchJson.season,
+            status: matchJson.status,
+            matchDate: new Date(matchJson.matchDate),
+            venue: matchJson.venue,
+            homeScore: matchJson.score?.home,
+            awayScore: matchJson.score?.away,
+            odds: matchJson.odds,
+            bettingContractAddress: contractAddress,
+            createdAt: new Date(matchJson.createdAt),
+            updatedAt: new Date(matchJson.updatedAt)
         });
         await this.matchRepository.update(matchWithContract);
 
@@ -108,10 +129,28 @@ export class TestMatchLifecycleCommand {
 
         const matchJson = match.toJSON();
         const updatedMatch = Match.reconstitute({
-            ...matchJson,
+            id: matchJson.id,
+            apiFootballId: matchJson.apiFootballId,
+            homeTeamId: matchJson.homeTeam.id,
+            homeTeamName: matchJson.homeTeam.name,
+            homeTeamLogo: matchJson.homeTeam.logo,
+            awayTeamId: matchJson.awayTeam.id,
+            awayTeamName: matchJson.awayTeam.name,
+            awayTeamLogo: matchJson.awayTeam.logo,
+            leagueId: matchJson.league.id,
+            leagueName: matchJson.league.name,
+            leagueLogo: matchJson.league.logo,
+            leagueCountry: matchJson.league.country,
+            season: matchJson.season,
             status: '1H',
+            matchDate: new Date(matchJson.matchDate),
+            venue: matchJson.venue,
             homeScore: 0,
             awayScore: 0,
+            odds: matchJson.odds,
+            bettingContractAddress: matchJson.bettingContractAddress,
+            createdAt: new Date(matchJson.createdAt),
+            updatedAt: new Date()
         });
 
         await this.matchRepository.update(updatedMatch);
@@ -126,10 +165,28 @@ export class TestMatchLifecycleCommand {
 
         const matchJson = match.toJSON();
         const updatedMatch = Match.reconstitute({
-            ...matchJson,
+            id: matchJson.id,
+            apiFootballId: matchJson.apiFootballId,
+            homeTeamId: matchJson.homeTeam.id,
+            homeTeamName: matchJson.homeTeam.name,
+            homeTeamLogo: matchJson.homeTeam.logo,
+            awayTeamId: matchJson.awayTeam.id,
+            awayTeamName: matchJson.awayTeam.name,
+            awayTeamLogo: matchJson.awayTeam.logo,
+            leagueId: matchJson.league.id,
+            leagueName: matchJson.league.name,
+            leagueLogo: matchJson.league.logo,
+            leagueCountry: matchJson.league.country,
+            season: matchJson.season,
             status: 'FT',
+            matchDate: new Date(matchJson.matchDate),
+            venue: matchJson.venue,
             homeScore,
             awayScore,
+            odds: matchJson.odds,
+            bettingContractAddress: matchJson.bettingContractAddress,
+            createdAt: new Date(matchJson.createdAt),
+            updatedAt: new Date()
         });
 
         await this.matchRepository.update(updatedMatch);

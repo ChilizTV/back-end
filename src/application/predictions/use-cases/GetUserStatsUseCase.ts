@@ -1,6 +1,5 @@
 import { injectable, inject } from 'tsyringe';
 import { IPredictionRepository, UserPredictionStats } from '../../../domain/predictions/repositories/IPredictionRepository';
-import { NotFoundError } from '../../../domain/shared/errors/NotFoundError';
 
 @injectable()
 export class GetUserStatsUseCase {
@@ -13,7 +12,15 @@ export class GetUserStatsUseCase {
     const stats = await this.predictionRepository.getUserStats(userId, walletAddress);
 
     if (!stats) {
-      throw new NotFoundError('User stats', userId);
+      return {
+        userId,
+        walletAddress,
+        totalPredictions: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        activePredictions: 0,
+        winRate: 0,
+      };
     }
 
     return stats;

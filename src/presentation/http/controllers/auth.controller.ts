@@ -16,38 +16,42 @@ export class AuthController {
   ) {}
   /**
    * POST /auth/token
-   * Generates JWT token after verifying user access via waitlist
+   * Generates JWT token for authentication (Authentication layer)
+   * Authorization (whitelist check) happens separately in protected routes
    */
   async generateToken(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, walletAddress } = req.body;
 
-      // Verify access via use case
-      const accessResult = await this.checkAccessUseCase.execute(email, walletAddress);
-
-      if (!accessResult.hasAccess || !accessResult.entry) {
-        next(new UnauthorizedError('Access denied - not whitelisted'));
+      // Basic validation
+      if (!walletAddress) {
+        next(new UnauthorizedError('Wallet address is required'));
         return;
       }
 
-      const { entry } = accessResult;
+      // Check whitelist status (but don't block token generation)
+      const accessResult = await this.checkAccessUseCase.execute(email, walletAddress);
+      const isWhitelisted = accessResult.hasAccess && !!accessResult.entry;
 
-      // Generate JWT
+      // Generate JWT for EVERYONE (Authentication)
+      // Whitelist status is included in token for Authorization later
       const payload = {
-        email: entry.getEmail(),
-        walletAddress: entry.getWalletAddress(),
-        role: 'USER', // Default role - can be enriched later
+        email: email || null,
+        walletAddress: walletAddress.toLowerCase(),
+        isWhitelisted, // Authorization claim
+        role: 'USER',
       };
 
       const token = jwt.sign(payload, jwtConfig.secret, {
-        expiresIn: jwtConfig.expiresIn,
+        expiresIn: jwtConfig.expiresIn as any,
         issuer: jwtConfig.issuer,
         algorithm: jwtConfig.algorithm,
       });
 
       logger.info('JWT token generated', {
-        email: entry.getEmail(),
-        walletAddress: entry.getWalletAddress(),
+        email,
+        walletAddress,
+        isWhitelisted,
       });
 
       res.json({
@@ -55,9 +59,9 @@ export class AuthController {
         token,
         expiresIn: jwtConfig.expiresIn,
         user: {
-          email: entry.getEmail(),
-          walletAddress: entry.getWalletAddress(),
-          isWhitelisted: entry.hasAccess(),
+          email: email || null,
+          walletAddress: walletAddress.toLowerCase(),
+          isWhitelisted,
         },
       });
     } catch (error) {

@@ -2,7 +2,7 @@ export interface SubscriptionProps {
   id: string;
   streamerAddress: string;
   subscriberAddress: string;
-  tier: number;
+  durationSeconds: number;
   amount: string;
   startDate: Date;
   endDate: Date;
@@ -33,7 +33,7 @@ export class Subscription {
       id: this.props.id,
       streamerAddress: this.props.streamerAddress,
       subscriberAddress: this.props.subscriberAddress,
-      tier: this.props.tier,
+      durationSeconds: this.props.durationSeconds,
       amount: this.props.amount,
       startDate: this.props.startDate,
       endDate: this.props.endDate,

@@ -4,11 +4,13 @@
  * Note: No users table - userId comes from Dynamic (Web3 auth provider)
  */
 export interface JwtPayload {
-  userId: string;          // User ID from Dynamic
+  email: string | null;    // User email (optional)
   walletAddress: string;   // Ethereum wallet address
-  role: UserRole;
+  isWhitelisted: boolean;  // Whitelist status for authorization
+  role: string;            // User role (UserRole enum value)
   iat?: number;            // Issued at (timestamp)
   exp?: number;            // Expiration (timestamp)
+  iss?: string;            // Issuer
 }
 
 /**

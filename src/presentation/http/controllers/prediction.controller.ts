@@ -46,11 +46,18 @@ export class PredictionController {
   async getUserPredictions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = req.params;
-      const { walletAddress, limit = 50, offset = 0 } = req.query;
+      const { limit = 50, offset = 0 } = req.query;
+
+      // Extract walletAddress from JWT token (set by authenticate middleware)
+      const walletAddress = req.user?.walletAddress;
+
+      if (!walletAddress) {
+        throw new Error('Wallet address not found in token');
+      }
 
       const predictions = await this.getUserPredictionsUseCase.execute(
         userId,
-        walletAddress as string,
+        walletAddress,
         Number(limit),
         Number(offset)
       );
@@ -71,9 +78,15 @@ export class PredictionController {
   async getUserStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = req.params;
-      const { walletAddress } = req.query;
 
-      const stats = await this.getUserStatsUseCase.execute(userId, walletAddress as string);
+      // Extract walletAddress from JWT token (set by authenticate middleware)
+      const walletAddress = req.user?.walletAddress;
+
+      if (!walletAddress) {
+        throw new Error('Wallet address not found in token');
+      }
+
+      const stats = await this.getUserStatsUseCase.execute(userId, walletAddress);
 
       res.json({
         success: true,

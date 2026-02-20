@@ -5,3 +5,4 @@ export { chatRoutes } from './chat.routes';
 export { waitlistRoutes } from './waitlist.routes';
 export { streamRoutes } from './stream.routes';
 export { streamWalletRoutes } from './stream-wallet.routes';
+export { fanTokensRoutes } from './fan-tokens.routes';

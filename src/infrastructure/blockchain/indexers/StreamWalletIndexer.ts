@@ -299,16 +299,22 @@ export class StreamWalletIndexer {
 
                 let matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
                 if (!matchId && networkType === 'testnet') {
-                    matchId = 1;
+                    matchId = 999001;
                 }
                 if (matchId) {
-                    await this.insertChatMessageForStreamerEvent(
-                        matchId,
-                        'donation',
-                        donor.toLowerCase(),
-                        (Number(amountBigInt) / 1e18).toString(),
-                        message || undefined
-                    );
+                    // Verify match exists before inserting chat message
+                    const matchExists = await this.verifyMatchExists(matchId);
+                    if (matchExists) {
+                        await this.insertChatMessageForStreamerEvent(
+                            matchId,
+                            'donation',
+                            donor.toLowerCase(),
+                            (Number(amountBigInt) / 1e18).toString(),
+                            message || undefined
+                        );
+                    } else {
+                        logger.warn('Match not found for donation chat message', { matchId });
+                    }
                 }
             }
         } catch (error) {
@@ -375,15 +381,21 @@ export class StreamWalletIndexer {
 
                 let matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
                 if (!matchId && networkType === 'testnet') {
-                    matchId = 1;
+                    matchId = 999001;
                 }
                 if (matchId) {
-                    await this.insertChatMessageForStreamerEvent(
-                        matchId,
-                        'subscription',
-                        subscriber.toLowerCase(),
-                        (Number(amountBigInt) / 1e18).toString()
-                    );
+                    // Verify match exists before inserting chat message
+                    const matchExists = await this.verifyMatchExists(matchId);
+                    if (matchExists) {
+                        await this.insertChatMessageForStreamerEvent(
+                            matchId,
+                            'subscription',
+                            subscriber.toLowerCase(),
+                            (Number(amountBigInt) / 1e18).toString()
+                        );
+                    } else {
+                        logger.warn('Match not found for subscription chat message', { matchId });
+                    }
                 }
             }
         } catch (error) {
@@ -410,6 +422,20 @@ export class StreamWalletIndexer {
             return data.match_id;
         } catch {
             return null;
+        }
+    }
+
+    private async verifyMatchExists(matchId: number): Promise<boolean> {
+        try {
+            const { data, error } = await supabase
+                .from('matches')
+                .select('api_football_id')
+                .eq('api_football_id', matchId)
+                .maybeSingle();
+
+            return !error && !!data;
+        } catch {
+            return false;
         }
     }
 

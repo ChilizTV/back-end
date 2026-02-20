@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc && node dist/index.js",
+    "dev": "nodemon --watch 'src/**/*.ts' --watch 'index.ts' --exec 'ts-node' index.ts",
     "build": "tsc",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "deploy:missing-contracts": "ts-node scripts/deploy-missing-betting-contracts.ts",
     "setup:markets": "ts-node scripts/setup-markets-for-existing-contracts.ts"
   },
@@ -22,6 +25,7 @@
     "@types/node-cron": "^3.0.11",
     "@types/uuid": "^10.0.0",
     "@types/winston": "^2.4.4",
+    "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },

@@ -31,7 +31,7 @@ export class SettlePredictionsUseCase {
             for (const prediction of predictions) {
                 try {
                     // Get match to check if it's finished and has scores
-                    const match = await this.matchRepository.findById(prediction.getMatchId());
+                    const match = await this.matchRepository.findByApiFootballId(prediction.getMatchId());
 
                     if (!match) {
                         logger.warn('Match not found for prediction', { predictionId: prediction.getId() });
@@ -102,6 +102,16 @@ export class SettlePredictionsUseCase {
         predictionType: string,
         predictionValue: string
     ): boolean {
+        // Handle frontend prediction types (WIN_HOME, WIN_AWAY, DRAW)
+        if (predictionType === 'WIN_HOME') {
+            return homeScore > awayScore;
+        } else if (predictionType === 'WIN_AWAY') {
+            return awayScore > homeScore;
+        } else if (predictionType === 'DRAW') {
+            return homeScore === awayScore;
+        }
+
+        // Handle legacy match_winner format
         if (predictionType === 'match_winner') {
             if (predictionValue === 'home') {
                 return homeScore > awayScore;
@@ -123,13 +133,14 @@ export class SettlePredictionsUseCase {
      * Get the actual result string from scores
      */
     private getActualResult(homeScore: number, awayScore: number, predictionType: string): string {
-        if (predictionType === 'match_winner') {
+        // For WIN_HOME, WIN_AWAY, DRAW types, return the actual match result
+        if (predictionType === 'WIN_HOME' || predictionType === 'WIN_AWAY' || predictionType === 'DRAW' || predictionType === 'match_winner') {
             if (homeScore > awayScore) {
-                return 'home';
+                return 'WIN_HOME';
             } else if (awayScore > homeScore) {
-                return 'away';
+                return 'WIN_AWAY';
             } else {
-                return 'draw';
+                return 'DRAW';
             }
         }
         return 'unknown';

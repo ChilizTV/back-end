@@ -6,8 +6,8 @@ export interface ApiFootballMatch {
         venue: { name: string };
     };
     teams: {
-        home: { name: string; logo?: string };
-        away: { name: string; logo?: string };
+        home: { id: number; name: string; logo?: string };
+        away: { id: number; name: string; logo?: string };
     };
     goals: {
         home: number | null;

@@ -9,6 +9,7 @@ export interface MatchStats {
 
 export interface IMatchRepository {
   findAll(): Promise<Match[]>;
+  findWithin24Hours(): Promise<Match[]>;
   findById(id: number): Promise<Match | null>;
   findByApiFootballId(apiFootballId: number): Promise<Match | null>;
   findByLeagueId(leagueId: number): Promise<Match[]>;

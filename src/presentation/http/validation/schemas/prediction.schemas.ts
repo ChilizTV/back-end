@@ -66,7 +66,6 @@ export const getUserPredictionsSchema = z.object({
     userId: uuidSchema,
   }),
   query: paginationSchema.extend({
-    walletAddress: ethereumAddressSchema,
     status: predictionStatusSchema.optional(),
   }),
 });
@@ -91,9 +90,7 @@ export const getUserStatsSchema = z.object({
   params: z.object({
     userId: uuidSchema,
   }),
-  query: z.object({
-    walletAddress: ethereumAddressSchema,
-  }),
+  query: z.object({}),
 });
 
 /**

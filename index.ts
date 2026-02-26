@@ -1,44 +1,60 @@
+import 'reflect-metadata';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from "cors";
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { MatchController } from './controllers/match.controller';
-import { ChatController } from './controllers/chat.controller';
-import { StreamController } from './controllers/stream.controller';
-import { WaitlistController } from './controllers/waitlist.controller';
-import { predictionController } from './controllers/prediction.controller';
-import { StreamWalletController } from './controllers/stream-wallet.controller';
-import { streamService } from './services/stream.service';
-import { streamWalletService } from './services/stream-wallet.service';
-import { bettingEventIndexerService } from './services/betting-event-indexer.service';
-import { startMatchSyncCron } from './cron/sync-matches.cron';
-import { startStreamCleanupCron } from './cron/cleanup-streams.cron';
-import { startPredictionSettlementCron } from './cron/settle-predictions.cron';
 import { config } from 'dotenv';
 import * as path from 'path';
-import './config/supabase'; // Initialize Supabase
-
+import { securityHeadersMiddleware, env, setupDependencyInjection, container } from './src/infrastructure/config';
+import { logger, requestLogger } from './src/infrastructure/logging';
+import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter } from './src/presentation/http/middlewares';
+import { SocketServer } from './src/presentation/websocket';
+import { JobScheduler, BlockchainEventListener } from './src/infrastructure/services';
+import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
 config();
+setupDependencyInjection();
+import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes } from './src/presentation/http/routes';
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT;
+const PORT = env.PORT;
 
-// Initialize Socket.IO
+// Parse allowed origins from environment variable (comma-separated)
+const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim());
+
+// Initialize Socket.IO with CORS whitelist
 const io = new SocketIOServer(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
+// Security headers (Helmet) - adapted for Web3/dev environment
+app.use(securityHeadersMiddleware);
+
+// Body parser
 app.use(bodyParser.json({ limit: '50mb' }));
-app.use(cors());
+
+// CORS with whitelist (replaces permissive cors())
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Global rate limiting
+app.use(globalLimiter);
+
+// Request logging with correlation IDs
+app.use(requestLogger);
 
 // Serve static files for HLS streams
 const streamsStaticPath = path.join(process.cwd(), 'public', 'streams');
-console.log(`📁 Serving static streams from: ${streamsStaticPath}`);
+logger.info('Serving static streams', { path: streamsStaticPath });
 
 app.use('/streams', express.static(streamsStaticPath, {
     setHeaders: (res, filePath) => {
@@ -57,19 +73,30 @@ app.use('/streams', express.static(streamsStaticPath, {
     }
 }));
 
-const matchController = new MatchController();
-const chatController = new ChatController();
-const streamController = new StreamController();
-const waitlistController = new WaitlistController();
-const streamWalletController = new StreamWalletController();
+// Public routes (no authentication required)
+app.use('/auth', authLimiter, authRoutes);
+app.use('/waitlist', waitlistRoutes);
 
-app.use('/matches', matchController.getRouter());
-app.use('/chat', chatController.getRouter());
-app.use('/stream', streamController.getRouter());
-app.use('/waitlist', waitlistController.getRouter());
-app.use('/stream-wallet', streamWalletController.router);
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: Date.now(),
+        version: '2.0.0',
+    });
+});
 
-app.use('/predictions', predictionController.getRouter());
+// Public stream routes (no auth needed to view streams)
+app.use('/stream', streamRoutes);
+
+// Global authentication middleware - all routes below require JWT
+app.use(authenticate);
+
+app.use('/matches', matchRoutes);
+app.use('/chat', chatLimiter, chatRoutes);
+app.use('/stream-wallet', streamWalletRoutes);
+app.use('/fan-tokens', fanTokensRoutes);
+
+app.use('/predictions', predictionsLimiter, predictionRoutes);
 
 app.get('/supabase-status', (req, res) => {
     res.json({ 
@@ -80,71 +107,13 @@ app.get('/supabase-status', (req, res) => {
     });
 });
 
-// Socket.IO namespace for streaming
-const streamNamespace = io.of('/stream');
-
-streamNamespace.on('connection', (socket) => {
-    console.log(`📡 Client connected to /stream namespace: ${socket.id}`);
-
-    socket.on('stream:start', async (data: { streamKey: string }) => {
-        console.log(`🎬 Stream start requested for streamKey: ${data.streamKey}`);
-        console.log(`📋 Full data received:`, JSON.stringify(data));
-        if (!data || !data.streamKey) {
-            console.error('❌ stream:start received without streamKey');
-            console.error('❌ Data received:', data);
-            return;
-        }
-        console.log(`📋 About to call streamService.startStreaming(${data.streamKey})`);
-        try {
-            await streamService.startStreaming(data.streamKey, socket);
-            console.log(`✅ streamService.startStreaming called successfully`);
-        } catch (error) {
-            console.error(`❌ Error in streamService.startStreaming:`, error);
-        }
-    });
-
-    socket.on('stream:data', (data: { streamKey: string; chunk: Buffer | Uint8Array | ArrayBuffer }) => {
-        if (!data.streamKey) {
-            console.error('❌ stream:data received without streamKey');
-            return;
-        }
-        
-        let buffer: Buffer;
-        if (Buffer.isBuffer(data.chunk)) {
-            buffer = data.chunk;
-        } else if (data.chunk instanceof Uint8Array) {
-            buffer = Buffer.from(data.chunk);
-        } else if (data.chunk instanceof ArrayBuffer) {
-            buffer = Buffer.from(new Uint8Array(data.chunk));
-        } else {
-            console.error('❌ Invalid chunk type received');
-            return;
-        }
-        
-        streamService.handleStreamData(data.streamKey, buffer);
-    });
-
-    socket.on('stream:audio', (data: { streamKey: string; audioData: number[] }) => {
-        if (!data.streamKey || !data.audioData) {
-            return; // Skip silently if invalid
-        }
-        
-        streamService.handleStreamAudio(data.streamKey, data.audioData);
-    });
-
-    socket.on('stream:end', (data: { streamKey: string }) => {
-        console.log(`🛑 Stream end requested: ${data.streamKey}`);
-        // The stream will be ended via the REST API
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`📡 Client disconnected from /stream namespace: ${socket.id}`);
-    });
-});
+// Initialize Socket.IO server
+const socketServer = container.resolve(SocketServer);
+socketServer.initialize(io);
 
 app.get('/', (req, res) => {
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         message: 'Football Chat API with Supabase Realtime',
         version: '2.0.0',
         endpoints: {
@@ -156,30 +125,35 @@ app.get('/', (req, res) => {
     });
 });
 
+// Global error handler - MUST be after all routes
+app.use(errorHandler);
+
 server.listen(PORT, () => {
-    console.log(`🚀 Server listening on port ${PORT}`);
-    console.log(`🔗 Supabase Realtime service connected`);
-    console.log(`📡 Chat endpoints available at /chat`);
-    console.log(`⚽ Match endpoints available at /matches`);
-    console.log(`📺 Stream endpoints available at /stream`);
-    console.log(`💰 Stream Wallet endpoints available at /stream-wallet`);
-    console.log(`🎯 Predictions endpoints available at /predictions`);
-    console.log(`🎬 Socket.IO streaming namespace available at /stream`);
-    console.log(`🌐 API available at http://localhost:${PORT}`);
-    
-    startMatchSyncCron();
-    startStreamCleanupCron();
-    startPredictionSettlementCron();
-    
-    // Start blockchain event indexing for donations and subscriptions
-    console.log('🔍 Starting blockchain event indexing...');
-    streamWalletService.startEventIndexing().catch(error => {
-        console.error('❌ Failed to start event indexing:', error);
+    logger.info('Server started successfully', {
+        port: PORT,
+        environment: env.NODE_ENV,
+        endpoints: {
+            matches: '/matches',
+            chat: '/chat',
+            stream: '/stream',
+            streamWallet: '/stream-wallet',
+            predictions: '/predictions',
+        },
     });
 
-    // Start betting event indexing (BetPlaced → predictions + chat)
-    console.log('🎯 Starting betting event indexing...');
-    bettingEventIndexerService.startEventIndexing().catch(error => {
-        console.error('❌ Failed to start betting event indexing:', error);
+    // Clean up matches outside 24h window on startup
+    const cleanupUseCase = container.resolve(CleanupOldMatchesUseCase);
+    cleanupUseCase.cleanupOutside24Hours().catch((err: Error) => {
+        logger.error('Startup cleanup failed', { error: err.message });
+    });
+
+    // Start all scheduled jobs
+    const jobScheduler = container.resolve(JobScheduler);
+    jobScheduler.start();
+
+    // Start blockchain event listeners
+    const blockchainEventListener = container.resolve(BlockchainEventListener);
+    blockchainEventListener.start().catch((error: Error) => {
+        logger.error('Failed to start blockchain event listeners', { error: error.message });
     });
 });

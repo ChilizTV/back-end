@@ -3,6 +3,7 @@ export interface StreamProps {
   matchId: number;
   streamerId: string;
   streamerName: string;
+  streamerWalletAddress?: string;
   streamKey: string;
   hlsUrl?: string;
   isLive: boolean;
@@ -54,6 +55,7 @@ export class Stream {
       matchId: this.props.matchId,
       streamerId: this.props.streamerId,
       streamerName: this.props.streamerName,
+      streamerWalletAddress: this.props.streamerWalletAddress,
       streamKey: this.props.streamKey,
       hlsUrl: this.props.hlsUrl,
       isLive: this.props.isLive,

@@ -82,6 +82,24 @@ export class SupabaseStreamRepository implements IStreamRepository {
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }
 
+  async findActiveByMatchIds(matchIds: number[]): Promise<Stream[]> {
+    if (matchIds.length === 0) return [];
+
+    const { data: rows, error } = await supabase
+      .from('live_streams')
+      .select('*')
+      .eq('status', 'active')
+      .in('match_id', matchIds)
+      .order('viewer_count', { ascending: false });
+
+    if (error) {
+      logger.error('Failed to find active streams by match ids', { error: error.message });
+      throw new Error('Failed to find active streams by match ids');
+    }
+
+    return rows ? rows.map(row => this.toDomain(row)) : [];
+  }
+
   async findOldEndedStreams(before: Date): Promise<Stream[]> {
     const { data: rows, error } = await supabase
       .from('live_streams')
@@ -134,6 +152,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       matchId: row.match_id,
       streamerId: row.streamer_id,
       streamerName: row.streamer_name,
+      streamerWalletAddress: row.streamer_wallet_address,
       streamKey: row.stream_key,
       hlsUrl: row.hls_playlist_url,
       isLive: row.status === 'active',
@@ -150,6 +169,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       match_id: json.matchId,
       streamer_id: json.streamerId,
       streamer_name: json.streamerName,
+      streamer_wallet_address: json.streamerWalletAddress || null,
       stream_key: json.streamKey,
       hls_playlist_url: json.hlsUrl,
       status: json.isLive ? 'active' : 'ended',

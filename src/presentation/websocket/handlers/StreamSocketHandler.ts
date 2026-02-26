@@ -1,32 +1,27 @@
 import { injectable, inject } from 'tsyringe';
 import { Socket } from 'socket.io';
-import { CreateStreamUseCase } from '../../../application/streams/use-cases/CreateStreamUseCase';
-import { EndStreamUseCase } from '../../../application/streams/use-cases/EndStreamUseCase';
+import { HlsStreamProcessor } from '../../../infrastructure/streaming/HlsStreamProcessor';
 import { logger } from '../../../infrastructure/logging/logger';
 
-/**
- * Stream Socket Handler
- * Handles WebSocket events for live streaming
- */
 @injectable()
 export class StreamSocketHandler {
     constructor(
-        @inject(CreateStreamUseCase) private readonly createStreamUseCase: CreateStreamUseCase,
-        @inject(EndStreamUseCase) private readonly endStreamUseCase: EndStreamUseCase
+        @inject(HlsStreamProcessor)
+        private readonly hlsProcessor: HlsStreamProcessor
     ) {}
 
     handleConnection(socket: Socket): void {
         logger.info('Client connected to /stream namespace', { socketId: socket.id });
 
-        socket.on('stream:start', async (data: { streamKey: string }) => {
-            await this.handleStreamStart(socket, data);
+        socket.on('stream:start', (data: { streamKey: string }) => {
+            this.handleStreamStart(socket, data);
         });
 
         socket.on('stream:data', (data: { streamKey: string; chunk: Buffer | Uint8Array | ArrayBuffer }) => {
             this.handleStreamData(data);
         });
 
-        socket.on('stream:audio', (data: { streamKey: string; audioData: number[] }) => {
+        socket.on('stream:audio', (data: { streamKey: string; audioData: number[]; sampleRate?: number }) => {
             this.handleStreamAudio(data);
         });
 
@@ -39,31 +34,29 @@ export class StreamSocketHandler {
         });
     }
 
-    private async handleStreamStart(socket: Socket, data: { streamKey: string }): Promise<void> {
-        logger.info('Stream start requested', { streamKey: data.streamKey });
-
-        if (!data || !data.streamKey) {
-            logger.error('stream:start received without streamKey', { data });
+    private handleStreamStart(socket: Socket, data: { streamKey: string }): void {
+        if (!data?.streamKey) {
+            logger.error('stream:start received without streamKey');
             return;
         }
 
+        logger.info('Stream start requested', { streamKey: data.streamKey });
+
         try {
-            // TODO: Implement stream start logic with use cases
-            // This would involve creating a stream record and initializing the stream processor
-            logger.info('Stream start successful', { streamKey: data.streamKey });
+            this.hlsProcessor.startStream(data.streamKey);
+            socket.emit('stream:started', { streamKey: data.streamKey });
+            logger.info('HLS stream started', { streamKey: data.streamKey });
         } catch (error) {
-            logger.error('Error starting stream', {
+            logger.error('Error starting HLS stream', {
                 streamKey: data.streamKey,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
+            socket.emit('stream:error', { message: 'Failed to start stream' });
         }
     }
 
     private handleStreamData(data: { streamKey: string; chunk: Buffer | Uint8Array | ArrayBuffer }): void {
-        if (!data.streamKey) {
-            logger.error('stream:data received without streamKey');
-            return;
-        }
+        if (!data.streamKey) return;
 
         let buffer: Buffer;
         if (Buffer.isBuffer(data.chunk)) {
@@ -73,26 +66,36 @@ export class StreamSocketHandler {
         } else if (data.chunk instanceof ArrayBuffer) {
             buffer = Buffer.from(new Uint8Array(data.chunk));
         } else {
-            logger.error('Invalid chunk type received');
-            return;
+            const raw = data.chunk as any;
+            if (raw?.type === 'Buffer' && Array.isArray(raw.data)) {
+                buffer = Buffer.from(raw.data);
+            } else {
+                return;
+            }
         }
 
-        // TODO: Process stream data buffer
-        // This would involve writing to HLS segments, transcoding, etc.
+        this.hlsProcessor.sendVideoFrame(data.streamKey, buffer);
     }
 
-    private handleStreamAudio(data: { streamKey: string; audioData: number[] }): void {
-        if (!data.streamKey || !data.audioData) {
-            return; // Skip silently if invalid
-        }
+    private handleStreamAudio(data: { streamKey: string; audioData: number[]; sampleRate?: number }): void {
+        if (!data.streamKey || !data.audioData) return;
 
-        // TODO: Process audio data
-        // This would involve audio processing and mixing with video stream
+        this.hlsProcessor.sendAudioData(
+            data.streamKey,
+            data.audioData,
+            data.sampleRate || 48000,
+        );
     }
 
     private handleStreamEnd(data: { streamKey: string }): void {
+        if (!data?.streamKey) return;
+
         logger.info('Stream end requested', { streamKey: data.streamKey });
-        // The stream will be ended via the REST API
-        // This is just a notification event
+        this.hlsProcessor.stopStream(data.streamKey).catch((error) => {
+            logger.error('Error stopping HLS stream', {
+                streamKey: data.streamKey,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+        });
     }
 }

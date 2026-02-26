@@ -20,13 +20,13 @@ export class StreamController {
 
   async createStream(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { matchId, streamerId, streamerName, streamKey } = req.body;
+      const { matchId, streamerId, streamerName, streamerWalletAddress } = req.body;
 
       const stream = await this.createStreamUseCase.execute({
         matchId,
         streamerId,
         streamerName,
-        streamKey,
+        streamerWalletAddress,
       });
 
       res.status(201).json({
@@ -54,9 +54,9 @@ export class StreamController {
 
   async endStream(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { streamKey } = req.body;
+      const { streamId, streamKey } = req.body;
 
-      await this.endStreamUseCase.execute(streamKey);
+      await this.endStreamUseCase.execute({ streamId, streamKey });
 
       res.json({
         success: true,

@@ -15,6 +15,7 @@ import { GetUpcomingMatchesUseCase } from '../../application/matches/use-cases/G
 import { GetMatchByIdUseCase } from '../../application/matches/use-cases/GetMatchByIdUseCase';
 import { GetMatchesByLeagueUseCase } from '../../application/matches/use-cases/GetMatchesByLeagueUseCase';
 import { GetMatchStatsUseCase } from '../../application/matches/use-cases/GetMatchStatsUseCase';
+import { GetBrowseMatchesUseCase } from '../../application/matches/use-cases/GetBrowseMatchesUseCase';
 import { MatchController } from '../../presentation/http/controllers/match.controller';
 import { IChatRepository } from '../../domain/chat/repositories/IChatRepository';
 import { SupabaseChatRepository } from '../persistence/repositories/SupabaseChatRepository';
@@ -67,6 +68,7 @@ import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarket
 import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
 import { SocketServer } from '../../presentation/websocket/SocketServer';
 import { StreamSocketHandler } from '../../presentation/websocket/handlers/StreamSocketHandler';
+import { HlsStreamProcessor } from '../streaming/HlsStreamProcessor';
 import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
 import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
 import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
@@ -121,6 +123,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(GetMatchByIdUseCase);
   container.registerSingleton(GetMatchesByLeagueUseCase);
   container.registerSingleton(GetMatchStatsUseCase);
+  container.registerSingleton(GetBrowseMatchesUseCase);
   container.registerSingleton(ResolveFinishedMatchesUseCase);
   container.registerSingleton(SyncMatchesUseCase);
   container.registerSingleton(CleanupOldMatchesUseCase);
@@ -167,6 +170,9 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(DeployMissingContractsCommand);
   container.registerSingleton(SetupMarketsCommand);
   container.registerSingleton(TestMatchLifecycleCommand);
+
+  // Infrastructure - Streaming
+  container.registerSingleton(HlsStreamProcessor);
 
   // Presentation - WebSocket
   container.registerSingleton(SocketServer);

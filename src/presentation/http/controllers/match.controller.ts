@@ -6,6 +6,7 @@ import { GetUpcomingMatchesUseCase } from '../../../application/matches/use-case
 import { GetMatchByIdUseCase } from '../../../application/matches/use-cases/GetMatchByIdUseCase';
 import { GetMatchesByLeagueUseCase } from '../../../application/matches/use-cases/GetMatchesByLeagueUseCase';
 import { GetMatchStatsUseCase } from '../../../application/matches/use-cases/GetMatchStatsUseCase';
+import { GetBrowseMatchesUseCase } from '../../../application/matches/use-cases/GetBrowseMatchesUseCase';
 
 @injectable()
 export class MatchController {
@@ -21,7 +22,9 @@ export class MatchController {
     @inject(GetMatchesByLeagueUseCase)
     private readonly getMatchesByLeagueUseCase: GetMatchesByLeagueUseCase,
     @inject(GetMatchStatsUseCase)
-    private readonly getMatchStatsUseCase: GetMatchStatsUseCase
+    private readonly getMatchStatsUseCase: GetMatchStatsUseCase,
+    @inject(GetBrowseMatchesUseCase)
+    private readonly getBrowseMatchesUseCase: GetBrowseMatchesUseCase,
   ) {}
 
   async getAllMatches(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -106,6 +109,15 @@ export class MatchController {
         success: true,
         stats,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getBrowseMatches(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await this.getBrowseMatchesUseCase.execute();
+      res.json(result);
     } catch (error) {
       next(error);
     }

@@ -9,11 +9,15 @@ export class EndStreamUseCase {
     private readonly streamRepository: IStreamRepository
   ) {}
 
-  async execute(streamKey: string): Promise<void> {
-    const stream = await this.streamRepository.findByStreamKey(streamKey);
+  async execute(params: { streamId?: string; streamKey?: string }): Promise<void> {
+    const stream = params.streamId
+      ? await this.streamRepository.findById(params.streamId)
+      : params.streamKey
+        ? await this.streamRepository.findByStreamKey(params.streamKey)
+        : null;
 
     if (!stream) {
-      throw new NotFoundError('Stream', streamKey);
+      throw new NotFoundError('Stream', params.streamId || params.streamKey || 'unknown');
     }
 
     stream.end();

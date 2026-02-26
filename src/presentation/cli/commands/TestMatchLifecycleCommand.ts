@@ -11,7 +11,7 @@ import { logger } from '../../../infrastructure/logging/logger';
  */
 @injectable()
 export class TestMatchLifecycleCommand {
-    private readonly TEST_MATCH_ID = 999001;
+    private readonly TEST_MATCH_ID = 999002;
     private readonly DEFAULT_ODDS = {
         homeWin: 2.1,
         draw: 3.2,
@@ -58,19 +58,19 @@ export class TestMatchLifecycleCommand {
             id: this.TEST_MATCH_ID,
             apiFootballId: this.TEST_MATCH_ID,
             homeTeamId: 1,
-            homeTeamName: 'Test Team A',
+            homeTeamName: 'Random Team A',
             homeTeamLogo: '',
             awayTeamId: 2,
-            awayTeamName: 'Test Team B',
+            awayTeamName: 'Random Team B',
             awayTeamLogo: '',
             leagueId: 1,
-            leagueName: 'Test League',
+            leagueName: 'Random League',
             leagueLogo: '',
             leagueCountry: 'Test',
             season: new Date().getFullYear(),
             matchDate,
             status: 'NS',
-            venue: 'Test Stadium',
+            venue: 'Random Stadium',
             odds: this.DEFAULT_ODDS,
         });
 

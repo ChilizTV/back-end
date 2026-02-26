@@ -42,7 +42,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(cors({
     origin: allowedOrigins,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -58,20 +58,24 @@ logger.info('Serving static streams', { path: streamsStaticPath });
 
 app.use('/streams', express.static(streamsStaticPath, {
     setHeaders: (res, filePath) => {
+        // Allow cross-origin access (overrides Helmet's same-origin default)
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         if (filePath.endsWith('.m3u8')) {
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-            // Cache-Control: no-cache to force playlist reload (normal for HLS live)
             res.setHeader('Cache-Control', 'no-cache');
-            // Access-Control-Allow-Origin for cross-origin requests
-            res.setHeader('Access-Control-Allow-Origin', '*');
         } else if (filePath.endsWith('.ts')) {
             res.setHeader('Content-Type', 'video/mp2t');
-            // Segments can be cached longer
             res.setHeader('Cache-Control', 'public, max-age=3600');
-            res.setHeader('Access-Control-Allow-Origin', '*');
         }
     }
 }));
+
+// Fallback: return 404 with no-cache to prevent browser caching missing playlists
+app.use('/streams', (_req, res) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'no-cache, no-store');
+    res.status(404).json({ error: 'Stream not found or not ready yet' });
+});
 
 // Public routes (no authentication required)
 app.use('/auth', authLimiter, authRoutes);

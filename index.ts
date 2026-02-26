@@ -14,7 +14,7 @@ import { JobScheduler, BlockchainEventListener } from './src/infrastructure/serv
 import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
 config();
 setupDependencyInjection();
-import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes } from './src/presentation/http/routes';
+import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes } from './src/presentation/http/routes';
 
 const app = express();
 const server = http.createServer(app);
@@ -96,6 +96,7 @@ app.use('/stream', streamRoutes);
 app.use(authenticate);
 
 app.use('/matches', matchRoutes);
+app.use('/follows', followRoutes);
 app.use('/chat', chatLimiter, chatRoutes);
 app.use('/stream-wallet', streamWalletRoutes);
 app.use('/fan-tokens', fanTokensRoutes);

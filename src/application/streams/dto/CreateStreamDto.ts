@@ -3,4 +3,5 @@ export interface CreateStreamDto {
   streamerId: string;
   streamerName: string;
   streamerWalletAddress?: string;
+  title?: string;
 }

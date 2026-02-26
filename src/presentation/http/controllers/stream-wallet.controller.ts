@@ -58,7 +58,10 @@ export class StreamWalletController {
 
       res.json({
         success: true,
-        stats,
+        stats: {
+          ...stats,
+          totalRevenue: stats.totalDonationAmount,
+        },
       });
     } catch (error) {
       next(error);

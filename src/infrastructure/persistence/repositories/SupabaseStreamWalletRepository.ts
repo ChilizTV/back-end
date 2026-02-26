@@ -96,8 +96,8 @@ export class SupabaseStreamWalletRepository implements IStreamWalletRepository {
 
     const totalDonations = donations.length;
     const totalDonationAmount = donations.reduce((sum, d) => {
-      return sum + BigInt(d.toJSON().amount);
-    }, BigInt(0)).toString();
+      return sum + parseFloat(d.toJSON().amount);
+    }, 0).toString();
 
     const totalSubscribers = subscriptions.length;
     const activeSubscribers = subscriptions.filter(s => s.isActive()).length;

@@ -12,6 +12,7 @@ interface StreamRow {
   streamer_wallet_address?: string;
   stream_key: string;
   hls_playlist_url?: string;
+  title?: string;
   status: 'active' | 'ended';
   viewer_count: number;
   created_at: string;
@@ -155,6 +156,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       streamerWalletAddress: row.streamer_wallet_address,
       streamKey: row.stream_key,
       hlsUrl: row.hls_playlist_url,
+      title: row.title,
       isLive: row.status === 'active',
       viewerCount: row.viewer_count,
       endedAt: row.ended_at ? new Date(row.ended_at) : undefined,
@@ -172,6 +174,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       streamer_wallet_address: json.streamerWalletAddress || null,
       stream_key: json.streamKey,
       hls_playlist_url: json.hlsUrl,
+      title: json.title || null,
       status: json.isLive ? 'active' : 'ended',
       viewer_count: json.viewerCount,
       created_at: json.createdAt.toISOString(),

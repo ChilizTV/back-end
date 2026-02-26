@@ -76,6 +76,14 @@ import { IFanTokenRepository } from '../../domain/fan-tokens/repositories/IFanTo
 import { FanTokenAdapter } from '../blockchain/adapters/FanTokenAdapter';
 import { GetUserFanTokenBalancesUseCase } from '../../application/fan-tokens/use-cases/GetUserFanTokenBalancesUseCase';
 import { FanTokensController } from '../../presentation/http/controllers/fan-tokens.controller';
+import { IFollowRepository } from '../../domain/follows/repositories/IFollowRepository';
+import { SupabaseFollowRepository } from '../persistence/repositories/SupabaseFollowRepository';
+import { FollowStreamerUseCase } from '../../application/follows/use-cases/FollowStreamerUseCase';
+import { UnfollowStreamerUseCase } from '../../application/follows/use-cases/UnfollowStreamerUseCase';
+import { GetIsFollowingUseCase } from '../../application/follows/use-cases/GetIsFollowingUseCase';
+import { GetFollowerCountUseCase } from '../../application/follows/use-cases/GetFollowerCountUseCase';
+import { GetFollowedStreamersUseCase } from '../../application/follows/use-cases/GetFollowedStreamersUseCase';
+import { FollowController } from '../../presentation/http/controllers/follow.controller';
 
 export function setupDependencyInjection(): void {
   // Infrastructure - Repositories
@@ -99,6 +107,9 @@ export function setupDependencyInjection(): void {
   });
   container.register<IFanTokenRepository>('IFanTokenRepository', {
     useClass: FanTokenAdapter,
+  });
+  container.register<IFollowRepository>('IFollowRepository', {
+    useClass: SupabaseFollowRepository,
   });
 
   // Infrastructure - Blockchain Adapters
@@ -159,6 +170,13 @@ export function setupDependencyInjection(): void {
   // Application - FanTokens Use Cases
   container.registerSingleton(GetUserFanTokenBalancesUseCase);
 
+  // Application - Follow Use Cases
+  container.registerSingleton(FollowStreamerUseCase);
+  container.registerSingleton(UnfollowStreamerUseCase);
+  container.registerSingleton(GetIsFollowingUseCase);
+  container.registerSingleton(GetFollowerCountUseCase);
+  container.registerSingleton(GetFollowedStreamersUseCase);
+
   // Infrastructure - Scheduling Jobs
   container.registerSingleton(SyncMatchesJob);
   container.registerSingleton(ResolveMarketsJob);
@@ -192,6 +210,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(StreamController);
   container.registerSingleton(StreamWalletController);
   container.registerSingleton(FanTokensController);
+  container.registerSingleton(FollowController);
 }
 
 export { container };

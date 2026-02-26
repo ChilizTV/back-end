@@ -6,6 +6,7 @@ export interface StreamProps {
   streamerWalletAddress?: string;
   streamKey: string;
   hlsUrl?: string;
+  title?: string;
   isLive: boolean;
   viewerCount: number;
   endedAt?: Date;
@@ -58,6 +59,7 @@ export class Stream {
       streamerWalletAddress: this.props.streamerWalletAddress,
       streamKey: this.props.streamKey,
       hlsUrl: this.props.hlsUrl,
+      title: this.props.title,
       isLive: this.props.isLive,
       viewerCount: this.props.viewerCount,
       endedAt: this.props.endedAt,

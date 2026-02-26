@@ -20,6 +20,7 @@ export class CreateStreamUseCase {
       streamerWalletAddress: dto.streamerWalletAddress,
       streamKey,
       hlsUrl: `/streams/${streamKey}/playlist.m3u8`,
+      title: dto.title,
       isLive: true,
       viewerCount: 0,
     });

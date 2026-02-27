@@ -2,6 +2,7 @@ import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
 import { Match, MatchOdds } from '../../../domain/matches/entities/Match';
 import { IMatchRepository, MatchStats } from '../../../domain/matches/repositories/IMatchRepository';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
 import { logger } from '../../logging/logger';
 
 interface MatchRow {
@@ -38,20 +39,16 @@ export class SupabaseMatchRepository implements IMatchRepository {
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }
 
-  async findWithin24Hours(): Promise<Match[]> {
-    const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const twentyFourHoursAhead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
+  async findByDateRange(from: Date, to: Date): Promise<Match[]> {
     const { data: rows, error } = await supabase
       .from('matches')
       .select('*')
-      .gte('match_date', twentyFourHoursAgo.toISOString())
-      .lte('match_date', twentyFourHoursAhead.toISOString())
+      .gte('match_date', from.toISOString())
+      .lte('match_date', to.toISOString())
       .order('match_date', { ascending: true });
 
     if (error) {
-      logger.error('Failed to find matches within 24 hours', { error: error.message });
+      logger.error('Failed to find matches by date range', { error: error.message });
       throw new Error('Failed to find matches');
     }
 
@@ -90,15 +87,13 @@ export class SupabaseMatchRepository implements IMatchRepository {
 
   async findByLeagueId(leagueId: number): Promise<Match[]> {
     const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const twentyFourHoursAhead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     const { data: rows, error } = await supabase
       .from('matches')
       .select('*')
       .eq('league->>id', leagueId)
-      .gte('match_date', twentyFourHoursAgo.toISOString())
-      .lte('match_date', twentyFourHoursAhead.toISOString())
+      .gte('match_date', MatchFetchWindow.fetchFrom(now).toISOString())
+      .lte('match_date', MatchFetchWindow.fetchTo(now).toISOString())
       .order('match_date', { ascending: true });
 
     if (error) {

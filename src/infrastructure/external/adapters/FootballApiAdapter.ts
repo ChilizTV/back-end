@@ -1,6 +1,7 @@
 import { injectable } from 'tsyringe';
 import axios from 'axios';
 import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds } from '../types/ApiFootball.types';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
 import { logger } from '../../logging/logger';
 
 /**
@@ -33,10 +34,11 @@ export class FootballApiAdapter {
     }
 
     /**
-     * Fetch matches from API Football for yesterday, today and tomorrow
-     * Filters by allowed leagues and time range (past 24h to next 24h)
+     * Fetch matches from API-Football for the given window.
+     * Uses a single from/to range call instead of individual day calls.
+     * @param daysAhead - Number of days ahead to fetch (driven by domain via SyncMatchesUseCase)
      */
-    async fetchMatches(): Promise<ApiFootballMatch[]> {
+    async fetchMatches(daysAhead: number = MatchFetchWindow.FETCH_DAYS_AHEAD): Promise<ApiFootballMatch[]> {
         if (this.isFetching) {
             logger.warn('Already fetching matches, skipping');
             return [];
@@ -50,95 +52,47 @@ export class FootballApiAdapter {
         this.isFetching = true;
 
         try {
-            logger.info('Fetching matches from API-Football');
-
-            const formatDate = (date: Date): string => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
-
             const now = new Date();
-            const yesterday = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-            const today = formatDate(now);
-            const tomorrow = formatDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+            const from = this.formatDate(MatchFetchWindow.fetchFrom(now));
+            const to   = this.formatDate(new Date(now.getTime() + daysAhead * 86_400_000));
 
-            logger.debug('Fetching matches for date range', { yesterday, today, tomorrow });
+            logger.info('Fetching matches from API-Football', { from, to, daysAhead });
 
-            const allMatches: ApiFootballMatch[] = [];
-
-            // Fetch yesterday's matches
-            const yesterdayResponse = await axios.get(`${this.API_FOOTBALL_BASE_URL}/fixtures`, {
+            const response = await axios.get(`${this.API_FOOTBALL_BASE_URL}/fixtures`, {
                 headers: {
                     'x-rapidapi-key': this.API_FOOTBALL_KEY,
-                    'x-rapidapi-host': 'v3.football.api-sports.io'
+                    'x-rapidapi-host': 'v3.football.api-sports.io',
                 },
-                params: {
-                    date: yesterday,
-                    status: 'NS-LIVE-FT'
-                }
+                params: { from, to, status: 'NS-LIVE-FT' },
             });
-            if (yesterdayResponse.data.response) {
-                allMatches.push(...yesterdayResponse.data.response);
-            }
 
-            // Fetch today's matches
-            const todayResponse = await axios.get(`${this.API_FOOTBALL_BASE_URL}/fixtures`, {
-                headers: {
-                    'x-rapidapi-key': this.API_FOOTBALL_KEY,
-                    'x-rapidapi-host': 'v3.football.api-sports.io'
-                },
-                params: {
-                    date: today,
-                    status: 'NS-LIVE-FT'
-                }
-            });
-            if (todayResponse.data.response) {
-                allMatches.push(...todayResponse.data.response);
-            }
+            const allMatches: ApiFootballMatch[] = response.data.response ?? [];
 
-            // Fetch tomorrow's matches
-            const tomorrowResponse = await axios.get(`${this.API_FOOTBALL_BASE_URL}/fixtures`, {
-                headers: {
-                    'x-rapidapi-key': this.API_FOOTBALL_KEY,
-                    'x-rapidapi-host': 'v3.football.api-sports.io'
-                },
-                params: {
-                    date: tomorrow,
-                    status: 'NS-LIVE-FT'
-                }
-            });
-            if (tomorrowResponse.data.response) {
-                allMatches.push(...tomorrowResponse.data.response);
-            }
-
-            // Filter by time range and allowed leagues
-            const past24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-            const filteredMatches = allMatches.filter(apiMatch => {
-                const matchDate = new Date(apiMatch.fixture.date);
-                const isInTimeRange = matchDate >= past24Hours && matchDate <= next24Hours;
-                const isAllowedLeague = this.ALLOWED_LEAGUE_IDS.includes(apiMatch.league.id);
-                return isInTimeRange && isAllowedLeague;
-            });
+            const filteredMatches = allMatches.filter(apiMatch =>
+                this.ALLOWED_LEAGUE_IDS.includes(apiMatch.league.id)
+            );
 
             logger.info('Matches fetched from API-Football', {
                 total: allMatches.length,
                 filtered: filteredMatches.length,
-                allowedLeagues: this.ALLOWED_LEAGUE_IDS
             });
 
             return filteredMatches;
         } catch (error) {
             logger.error('Error fetching matches from API-Football', {
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
             return [];
         } finally {
             this.isFetching = false;
         }
+    }
+
+    private formatDate(date: Date): string {
+        const year  = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day   = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     /**

@@ -1,5 +1,6 @@
 import { injectable, inject } from 'tsyringe';
 import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**
@@ -39,7 +40,6 @@ export class CleanupOldMatchesUseCase {
      * Convenience method to delete matches outside 24h window
      */
     async cleanupOutside24Hours(): Promise<number> {
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        return this.execute(twentyFourHoursAgo);
+        return this.execute(MatchFetchWindow.cleanupBefore(new Date()));
     }
 }

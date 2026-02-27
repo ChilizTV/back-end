@@ -1,5 +1,6 @@
 import { injectable, inject } from 'tsyringe';
 import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
 import { FootballApiAdapter } from '../../../infrastructure/external/adapters/FootballApiAdapter';
 import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
 import { MarketOddsAdapter } from '../../../infrastructure/blockchain/adapters/MarketOddsAdapter';
@@ -36,7 +37,7 @@ export class SyncMatchesUseCase {
             logger.info('Starting match synchronization');
 
             // Step 1: Fetch matches from API-Football
-            const apiMatches = await this.footballApiAdapter.fetchMatches();
+            const apiMatches = await this.footballApiAdapter.fetchMatches(MatchFetchWindow.FETCH_DAYS_AHEAD);
             logger.info('Matches fetched from API', { count: apiMatches.length });
 
             if (apiMatches.length === 0) {

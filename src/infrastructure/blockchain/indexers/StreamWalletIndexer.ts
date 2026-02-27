@@ -459,7 +459,17 @@ export class StreamWalletIndexer {
                 .order('created_at', { ascending: false })
                 .limit(1);
 
-            return predRows?.[0]?.username ?? null;
+            if (predRows?.[0]?.username) return predRows[0].username;
+
+            const { data: connectedRows } = await supabase
+                .from('chat_connected_users')
+                .select('username')
+                .ilike('wallet_address', addrPattern)
+                .not('username', 'eq', 'System')
+                .order('last_activity', { ascending: false })
+                .limit(1);
+
+            return connectedRows?.[0]?.username ?? null;
         } catch {
             return null;
         }

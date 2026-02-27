@@ -1,6 +1,7 @@
 import { injectable, inject } from 'tsyringe';
 import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
 import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
 import { Stream } from '../../../domain/streams/entities/Stream';
 import {
   BrowseMatchesResponseDto,
@@ -19,7 +20,11 @@ export class GetBrowseMatchesUseCase {
   ) {}
 
   async execute(): Promise<BrowseMatchesResponseDto> {
-    const matches = await this.matchRepository.findWithin24Hours();
+    const now = new Date();
+    const matches = await this.matchRepository.findByDateRange(
+      MatchFetchWindow.fetchFrom(now),
+      MatchFetchWindow.fetchTo(now),
+    );
 
     // live_streams.match_id references api_football_id (integer), not the UUID primary key
     const matchIds = matches.map(m => m.toJSON().apiFootballId as number);

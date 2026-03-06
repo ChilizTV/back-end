@@ -11,7 +11,7 @@ export class CreateStreamUseCase {
   ) {}
 
   async execute(dto: CreateStreamDto): Promise<Stream> {
-    const streamKey = `live_${dto.streamerId}_${crypto.randomUUID().slice(0, 8)}`;
+    const streamKey = crypto.randomUUID().slice(0, 8);
 
     const stream = Stream.create({
       matchId: dto.matchId,
@@ -19,7 +19,7 @@ export class CreateStreamUseCase {
       streamerName: dto.streamerName,
       streamerWalletAddress: dto.streamerWalletAddress,
       streamKey,
-      hlsUrl: `/streams/${streamKey}/playlist.m3u8`,
+      hlsUrl: `/live/${streamKey}/index.m3u8`,
       title: dto.title,
       isLive: true,
       viewerCount: 0,

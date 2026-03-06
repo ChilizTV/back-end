@@ -9,10 +9,16 @@ import { logger } from '../../logging/logger';
 
 const POLLING_INTERVAL_MS = 6000;
 
+interface TeamJson {
+    id: number;
+    name: string;
+    logo?: string;
+}
+
 interface MatchWithContract {
     api_football_id: number;
-    home_team: string;
-    away_team: string;
+    home_team: TeamJson | string;
+    away_team: TeamJson | string;
     match_date: string;
     betting_contract_address: string;
     odds?: { match_winner?: { home?: number; draw?: number; away?: number } } | null;
@@ -173,12 +179,19 @@ export class BettingEventIndexer {
         return matches.find(m => m.betting_contract_address?.toLowerCase() === addr);
     }
 
+    private getTeamName(team: TeamJson | string): string {
+        if (typeof team === 'string') return team;
+        return team.name ?? 'Unknown';
+    }
+
     private selectionToPrediction(selection: number, match: MatchWithContract): { subType: string; team: string } {
+        const homeName = this.getTeamName(match.home_team);
+        const awayName = this.getTeamName(match.away_team);
         switch (selection) {
-            case 0: return { subType: 'home', team: match.home_team };
+            case 0: return { subType: 'home', team: homeName };
             case 1: return { subType: 'draw', team: 'Draw' };
-            case 2: return { subType: 'away', team: match.away_team };
-            default: return { subType: 'home', team: match.home_team };
+            case 2: return { subType: 'away', team: awayName };
+            default: return { subType: 'home', team: homeName };
         }
     }
 
@@ -217,6 +230,12 @@ export class BettingEventIndexer {
                 return;
             }
 
+            // Decode on-chain data first (needed for both new and existing predictions)
+            const amountWei = BigInt(amount);
+            const amountCHZ = Number(amountWei) / 1e18;
+            const selectionNum = Number(selection);
+            const { subType, team } = this.selectionToPrediction(selectionNum, match);
+
             const { data: existing } = await supabase
                 .from('predictions')
                 .select('id')
@@ -224,14 +243,11 @@ export class BettingEventIndexer {
                 .maybeSingle();
 
             if (existing) {
-                logger.debug('Bet already indexed', { txHash: transactionHash.slice(0, 10) });
+                // Prediction already saved by POST /predictions; just send the chat message
+                logger.debug('Bet already indexed, sending chat message only', { txHash: transactionHash.slice(0, 10) });
+                await this.insertBetSystemMessage(match.api_football_id, amountCHZ.toFixed(4), team);
                 return;
             }
-
-            const amountWei = BigInt(amount);
-            const amountCHZ = Number(amountWei) / 1e18;
-            const selectionNum = Number(selection);
-            const { subType, team } = this.selectionToPrediction(selectionNum, match);
 
             const oddsForSelection = this.getOddsForSelection(selectionNum, match);
             const oddsToStore = oddsForSelection ?? (oddsX10000 != null ? Number(oddsX10000) / 10000 : 2.0);
@@ -243,7 +259,7 @@ export class BettingEventIndexer {
                 wallet_address: user.toLowerCase(),
                 username,
                 match_id: match.api_football_id,
-                match_name: `${match.home_team} vs ${match.away_team}`,
+                match_name: `${this.getTeamName(match.home_team)} vs ${this.getTeamName(match.away_team)}`,
                 prediction_type: 'match_winner',
                 prediction_value: subType,
                 predicted_team: team,
@@ -263,8 +279,6 @@ export class BettingEventIndexer {
 
             await this.insertBetSystemMessage(
                 match.api_football_id,
-                user.toLowerCase(),
-                username,
                 amountCHZ.toFixed(4),
                 team
             );
@@ -277,13 +291,11 @@ export class BettingEventIndexer {
 
     private async insertBetSystemMessage(
         matchId: number,
-        userAddress: string,
-        displayName: string,
         amountFormatted: string,
         selection: string
     ): Promise<void> {
         try {
-            const message = `🎯 ${displayName} bet ${amountFormatted} CHZ on ${selection}`;
+            const message = `🎯 New prediction: ${amountFormatted} CHZ on ${selection}`;
 
             const { error } = await supabase.from('chat_messages').insert({
                 match_id: matchId,
@@ -292,7 +304,7 @@ export class BettingEventIndexer {
                 message,
                 message_type: 'system',
                 system_type: 'bet',
-                wallet_address: userAddress,
+                wallet_address: 'system',
                 created_at: new Date().toISOString()
             });
 

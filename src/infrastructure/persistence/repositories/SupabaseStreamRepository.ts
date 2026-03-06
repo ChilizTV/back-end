@@ -171,7 +171,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       match_id: json.matchId,
       streamer_id: json.streamerId,
       streamer_name: json.streamerName,
-      streamer_wallet_address: json.streamerWalletAddress || null,
+      streamer_wallet_address: json.streamerWalletAddress?.toLowerCase() || null,
       stream_key: json.streamKey,
       hls_playlist_url: json.hlsUrl,
       title: json.title || null,

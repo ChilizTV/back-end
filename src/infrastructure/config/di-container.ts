@@ -66,9 +66,7 @@ import { SettlePredictionsJob } from '../scheduling/jobs/SettlePredictionsJob';
 import { DeployMissingContractsCommand } from '../../presentation/cli/commands/DeployMissingContractsCommand';
 import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarketsCommand';
 import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
-import { SocketServer } from '../../presentation/websocket/SocketServer';
-import { StreamSocketHandler } from '../../presentation/websocket/handlers/StreamSocketHandler';
-import { HlsStreamProcessor } from '../streaming/HlsStreamProcessor';
+import { MediamtxWebhookController } from '../../presentation/http/controllers/mediamtx-webhook.controller';
 import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
 import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
 import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
@@ -189,12 +187,8 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(SetupMarketsCommand);
   container.registerSingleton(TestMatchLifecycleCommand);
 
-  // Infrastructure - Streaming
-  container.registerSingleton(HlsStreamProcessor);
-
-  // Presentation - WebSocket
-  container.registerSingleton(SocketServer);
-  container.registerSingleton(StreamSocketHandler);
+  // Presentation - mediamtx webhook
+  container.registerSingleton(MediamtxWebhookController);
 
   // Infrastructure - Blockchain Indexers
   container.registerSingleton(BlockchainEventListener);

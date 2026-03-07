@@ -41,4 +41,10 @@ webrtcICEServers2: []     # No STUN needed on localhost; add in production
 # Paths — accept any path starting with live/
 paths:
   "~^live/":
-    {}
+    # Duplicate publisher protection is handled by the auth webhook:
+    # only one valid stream key can be active at a time via the lifecycle service.
+
+    # Docker: set MEDIAMTX_BACKEND_URL=http://<service-name>:3001 in compose
+    runOnNotReady: >-
+      curl -s -X POST
+      "${MEDIAMTX_BACKEND_URL:-http://localhost:3001}/mediamtx/disconnect?path=$MTX_PATH"

@@ -10,3 +10,8 @@ const ctrl = container.resolve(MediamtxWebhookController);
 mediamtxWebhookRoutes.post('/auth', (req, res, next) =>
   ctrl.auth(req, res).catch(next),
 );
+
+// mediamtx calls this when a publisher disconnects (runOnDisconnect)
+mediamtxWebhookRoutes.post('/disconnect', (req, res, next) =>
+  ctrl.disconnect(req, res).catch(next),
+);

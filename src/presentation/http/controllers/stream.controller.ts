@@ -41,7 +41,8 @@ export class StreamController {
 
   async getActiveStreams(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const streams = await this.getActiveStreamsUseCase.execute();
+      const streamerId = req.query['streamerId'] as string | undefined;
+      const streams = await this.getActiveStreamsUseCase.execute(streamerId);
 
       res.json({
         success: true,

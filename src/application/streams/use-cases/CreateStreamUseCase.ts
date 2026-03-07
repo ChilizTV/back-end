@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { Stream } from '../../../domain/streams/entities/Stream';
+import { Stream, StreamStatus } from '../../../domain/streams/entities/Stream';
 import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
 import { CreateStreamDto } from '../dto/CreateStreamDto';
 
@@ -11,7 +11,7 @@ export class CreateStreamUseCase {
   ) {}
 
   async execute(dto: CreateStreamDto): Promise<Stream> {
-    const streamKey = crypto.randomUUID().slice(0, 8);
+    const streamKey = crypto.randomUUID(); // full UUID — 36 chars, passes auth format validation
 
     const stream = Stream.create({
       matchId: dto.matchId,
@@ -21,7 +21,7 @@ export class CreateStreamUseCase {
       streamKey,
       hlsUrl: `/live/${streamKey}/index.m3u8`,
       title: dto.title,
-      isLive: true,
+      status: StreamStatus.CREATED,
       viewerCount: 0,
     });
 

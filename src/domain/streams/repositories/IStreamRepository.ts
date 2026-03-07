@@ -4,8 +4,10 @@ export interface IStreamRepository {
   save(stream: Stream): Promise<Stream>;
   findById(id: string): Promise<Stream | null>;
   findByStreamKey(streamKey: string): Promise<Stream | null>;
+  findByStreamerId(streamerId: string): Promise<Stream | null>;
   findActiveStreams(): Promise<Stream[]>;
   findActiveByMatchIds(matchIds: number[]): Promise<Stream[]>;
+  findStaleLiveStreams(olderThan: Date): Promise<Stream[]>;
   findOldEndedStreams(before: Date): Promise<Stream[]>;
   delete(id: string): Promise<void>;
   update(stream: Stream): Promise<Stream>;

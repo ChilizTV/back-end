@@ -62,11 +62,13 @@ import { JobScheduler } from '../scheduling/JobScheduler';
 import { SyncMatchesJob } from '../scheduling/jobs/SyncMatchesJob';
 import { ResolveMarketsJob } from '../scheduling/jobs/ResolveMarketsJob';
 import { CleanupStreamsJob } from '../scheduling/jobs/CleanupStreamsJob';
+import { StaleStreamCleanupJob } from '../scheduling/jobs/StaleStreamCleanupJob';
 import { SettlePredictionsJob } from '../scheduling/jobs/SettlePredictionsJob';
 import { DeployMissingContractsCommand } from '../../presentation/cli/commands/DeployMissingContractsCommand';
 import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarketsCommand';
 import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
 import { MediamtxWebhookController } from '../../presentation/http/controllers/mediamtx-webhook.controller';
+import { StreamLifecycleService } from '../services/StreamLifecycleService';
 import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
 import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
 import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
@@ -179,6 +181,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(SyncMatchesJob);
   container.registerSingleton(ResolveMarketsJob);
   container.registerSingleton(CleanupStreamsJob);
+  container.registerSingleton(StaleStreamCleanupJob);
   container.registerSingleton(SettlePredictionsJob);
   container.registerSingleton(JobScheduler);
 
@@ -186,6 +189,9 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(DeployMissingContractsCommand);
   container.registerSingleton(SetupMarketsCommand);
   container.registerSingleton(TestMatchLifecycleCommand);
+
+  // Infrastructure - Stream Lifecycle
+  container.registerSingleton(StreamLifecycleService);
 
   // Presentation - mediamtx webhook
   container.registerSingleton(MediamtxWebhookController);

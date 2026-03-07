@@ -64,6 +64,8 @@ import { ResolveMarketsJob } from '../scheduling/jobs/ResolveMarketsJob';
 import { CleanupStreamsJob } from '../scheduling/jobs/CleanupStreamsJob';
 import { StaleStreamCleanupJob } from '../scheduling/jobs/StaleStreamCleanupJob';
 import { SettlePredictionsJob } from '../scheduling/jobs/SettlePredictionsJob';
+import { ViewerReconcileJob } from '../scheduling/jobs/ViewerReconcileJob';
+import { ViewerSessionService } from '../services/ViewerSessionService';
 import { DeployMissingContractsCommand } from '../../presentation/cli/commands/DeployMissingContractsCommand';
 import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarketsCommand';
 import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
@@ -183,6 +185,7 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(CleanupStreamsJob);
   container.registerSingleton(StaleStreamCleanupJob);
   container.registerSingleton(SettlePredictionsJob);
+  container.registerSingleton(ViewerReconcileJob);
   container.registerSingleton(JobScheduler);
 
   // Presentation - CLI Commands
@@ -190,8 +193,9 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(SetupMarketsCommand);
   container.registerSingleton(TestMatchLifecycleCommand);
 
-  // Infrastructure - Stream Lifecycle
+  // Infrastructure - Stream Lifecycle + Viewer Sessions
   container.registerSingleton(StreamLifecycleService);
+  container.registerSingleton(ViewerSessionService);
 
   // Presentation - mediamtx webhook
   container.registerSingleton(MediamtxWebhookController);

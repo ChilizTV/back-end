@@ -13,6 +13,7 @@ interface StreamRow {
   stream_key: string;
   hls_playlist_url?: string;
   title?: string;
+  thumbnail_url?: string;
   status: 'created' | 'live' | 'ended';
   last_heartbeat_at?: string;
   viewer_count: number;
@@ -101,6 +102,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       streamKey: row.stream_key,
       hlsUrl: row.hls_playlist_url,
       title: row.title,
+      thumbnailUrl: row.thumbnail_url,
       status,
       lastHeartbeatAt: row.last_heartbeat_at ? new Date(row.last_heartbeat_at) : undefined,
       viewerCount: row.viewer_count,
@@ -120,6 +122,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
       stream_key: json.streamKey,
       hls_playlist_url: json.hlsUrl,
       title: json.title || null,
+      thumbnail_url: json.thumbnailUrl || null,
       status: json.status,
       last_heartbeat_at: json.lastHeartbeatAt ? json.lastHeartbeatAt.toISOString() : null,
       viewer_count: json.viewerCount,

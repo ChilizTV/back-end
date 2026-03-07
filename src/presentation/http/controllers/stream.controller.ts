@@ -4,6 +4,10 @@ import { CreateStreamUseCase } from '../../../application/streams/use-cases/Crea
 import { GetActiveStreamsUseCase } from '../../../application/streams/use-cases/GetActiveStreamsUseCase';
 import { EndStreamUseCase } from '../../../application/streams/use-cases/EndStreamUseCase';
 import { UpdateViewerCountUseCase } from '../../../application/streams/use-cases/UpdateViewerCountUseCase';
+import { ViewerSessionService } from '../../../infrastructure/services/ViewerSessionService';
+import { supabaseClient as supabase } from '../../../infrastructure/database/supabase/client';
+import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { logger } from '../../../infrastructure/logging/logger';
 
 @injectable()
 export class StreamController {
@@ -15,7 +19,11 @@ export class StreamController {
     @inject(EndStreamUseCase)
     private readonly endStreamUseCase: EndStreamUseCase,
     @inject(UpdateViewerCountUseCase)
-    private readonly updateViewerCountUseCase: UpdateViewerCountUseCase
+    private readonly updateViewerCountUseCase: UpdateViewerCountUseCase,
+    @inject(ViewerSessionService)
+    private readonly viewerSessionService: ViewerSessionService,
+    @inject('IStreamRepository')
+    private readonly streamRepository: IStreamRepository
   ) {}
 
   async createStream(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -76,10 +84,66 @@ export class StreamController {
 
       await this.updateViewerCountUseCase.execute(streamId, viewerCount);
 
-      res.json({
-        success: true,
-        message: 'Viewer count updated',
-      });
+      res.json({ success: true, message: 'Viewer count updated' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async joinViewer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { sessionToken } = req.body;
+      if (!sessionToken) { res.status(400).json({ error: 'sessionToken required' }); return; }
+      await this.viewerSessionService.join(id, sessionToken);
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async leaveViewer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { sessionToken } = req.body;
+      if (!sessionToken) { res.status(400).json({ error: 'sessionToken required' }); return; }
+      await this.viewerSessionService.leave(id, sessionToken);
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async uploadThumbnail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const file = (req as Request & { file?: Express.Multer.File }).file;
+
+      if (!file) { res.status(400).json({ error: 'No file uploaded' }); return; }
+      if (file.mimetype !== 'image/jpeg') { res.status(400).json({ error: 'Only image/jpeg accepted' }); return; }
+
+      if (this.viewerSessionService.isThumbnailThrottled(id)) {
+        res.json({ success: true, throttled: true });
+        return;
+      }
+
+      const path = `${id}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('stream-thumbnails')
+        .upload(path, file.buffer, { contentType: 'image/jpeg', upsert: true });
+
+      if (uploadError) {
+        logger.warn('Thumbnail upload failed', { id, error: uploadError.message });
+        res.status(500).json({ error: 'Upload failed' });
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from('stream-thumbnails').getPublicUrl(path);
+      const thumbnailUrl = urlData.publicUrl;
+
+      await supabase.from('live_streams').update({ thumbnail_url: thumbnailUrl }).eq('id', id);
+
+      res.json({ success: true, thumbnailUrl });
     } catch (error) {
       next(error);
     }

@@ -13,6 +13,7 @@ export interface StreamProps {
   streamKey: string;
   hlsUrl?: string;
   title?: string;
+  thumbnailUrl?: string;
   status: StreamStatus;
   lastHeartbeatAt?: Date;
   viewerCount: number;
@@ -90,7 +91,8 @@ export class Stream {
       hlsUrl: this.props.hlsUrl,
       title: this.props.title,
       status: this.props.status,
-      isLive: this.props.status === StreamStatus.LIVE, // backward compat for clients
+      isLive: this.props.status === StreamStatus.LIVE,
+      thumbnailUrl: this.props.thumbnailUrl ?? null,
       lastHeartbeatAt: this.props.lastHeartbeatAt,
       viewerCount: this.props.viewerCount,
       endedAt: this.props.endedAt,

@@ -11,7 +11,7 @@ import { logger } from '../../../infrastructure/logging/logger';
  */
 @injectable()
 export class TestMatchLifecycleCommand {
-    private readonly TEST_MATCH_ID = 999001;
+    private readonly TEST_MATCH_ID = 999003;
     private readonly DEFAULT_ODDS = {
         homeWin: 2.1,
         draw: 3.2,
@@ -57,20 +57,20 @@ export class TestMatchLifecycleCommand {
         const match = Match.create({
             id: this.TEST_MATCH_ID,
             apiFootballId: this.TEST_MATCH_ID,
-            homeTeamId: 3,
-            homeTeamName: 'Olympique Marseille',
+            homeTeamId: 6,
+            homeTeamName: 'Bayern Munich',
             homeTeamLogo: '',
-            awayTeamId: 4,
-            awayTeamName: 'Paris-Saint-Germain',
+            awayTeamId: 5,
+            awayTeamName: 'Dortmund',
             awayTeamLogo: '',
-            leagueId: 2,
-            leagueName: 'Ligue 1',
+            leagueId: 4,
+            leagueName: 'Bundesliga',
             leagueLogo: '',
-            leagueCountry: 'France',
+            leagueCountry: 'Germany',
             season: new Date().getFullYear(),
             matchDate,
             status: 'NS',
-            venue: 'Stade Vélodrome',
+            venue: 'Allianz Arena',
             odds: this.DEFAULT_ODDS,
         });
 

@@ -9,11 +9,10 @@ export class GetActiveStreamsUseCase {
     private readonly streamRepository: IStreamRepository
   ) {}
 
-  async execute(streamerId?: string): Promise<Stream[]> {
-    if (streamerId) {
-      const stream = await this.streamRepository.findByStreamerId(streamerId);
-      return stream ? [stream] : [];
+  async execute(matchId?: number): Promise<Stream[]> {
+    if (matchId) {
+      return this.streamRepository.findActiveByMatchIds([matchId]);
     }
-    return await this.streamRepository.findActiveStreams();
+    return this.streamRepository.findActiveStreams();
   }
 }

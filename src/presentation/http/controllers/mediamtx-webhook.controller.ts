@@ -82,8 +82,26 @@ export class MediamtxWebhookController {
   }
 
   /**
+   * POST /mediamtx/connect
+   * Called by mediamtx runOnReady when a path has an active publisher.
+   * Belt-and-suspenders alongside the auth hook: ensures status = live even if
+   * startStreamIfNeeded was missed during auth (server restart, timing, etc).
+   */
+  async connect(req: Request, res: Response): Promise<void> {
+    const streamKey = extractStreamKey((req.query['path'] as string) ?? '');
+    res.status(200).end();
+
+    if (streamKey) {
+      logger.info('mediamtx path ready (runOnReady)', { streamKey });
+      this.lifecycleService.startStreamIfNeeded(streamKey).catch(err =>
+        logger.error('Failed to start stream on connect', { streamKey, err: err.message }),
+      );
+    }
+  }
+
+  /**
    * POST /mediamtx/disconnect
-   * Called by mediamtx runOnDisconnect when a publisher disconnects.
+   * Called by mediamtx runOnNotReady when a publisher disconnects.
    */
   async disconnect(req: Request, res: Response): Promise<void> {
     const streamKey = extractStreamKey((req.query['path'] as string) ?? '');

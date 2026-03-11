@@ -38,6 +38,7 @@ import { IStreamRepository } from '../../domain/streams/repositories/IStreamRepo
 import { SupabaseStreamRepository } from '../persistence/repositories/SupabaseStreamRepository';
 import { CreateStreamUseCase } from '../../application/streams/use-cases/CreateStreamUseCase';
 import { GetActiveStreamsUseCase } from '../../application/streams/use-cases/GetActiveStreamsUseCase';
+import { GetPreferredStreamUseCase } from '../../application/streams/use-cases/GetPreferredStreamUseCase';
 import { EndStreamUseCase } from '../../application/streams/use-cases/EndStreamUseCase';
 import { UpdateViewerCountUseCase } from '../../application/streams/use-cases/UpdateViewerCountUseCase';
 import { CleanupOldStreamsUseCase } from '../../application/streams/use-cases/CleanupOldStreamsUseCase';
@@ -158,6 +159,7 @@ export function setupDependencyInjection(): void {
   // Application - Stream Use Cases
   container.registerSingleton(CreateStreamUseCase);
   container.registerSingleton(GetActiveStreamsUseCase);
+  container.registerSingleton(GetPreferredStreamUseCase);
   container.registerSingleton(EndStreamUseCase);
   container.registerSingleton(UpdateViewerCountUseCase);
   container.registerSingleton(CleanupOldStreamsUseCase);

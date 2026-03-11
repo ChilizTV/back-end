@@ -45,6 +45,9 @@ paths:
     # only one valid stream key can be active at a time via the lifecycle service.
 
     # Docker: set MEDIAMTX_BACKEND_URL=http://<service-name>:3001 in compose
+    runOnReady: >-
+      curl -s -X POST
+      "${MEDIAMTX_BACKEND_URL:-http://localhost:3001}/mediamtx/connect?path=$MTX_PATH"
     runOnNotReady: >-
       curl -s -X POST
       "${MEDIAMTX_BACKEND_URL:-http://localhost:3001}/mediamtx/disconnect?path=$MTX_PATH"

@@ -68,6 +68,22 @@ save(stream) / update(stream) / delete(id)
 
 ---
 
+## Preferred Stream Selection
+
+`GET /stream/preferred?matchId=&userId=` returns the best stream to auto-display when a viewer opens a match page.
+
+**Priority order (use case: `GetPreferredStreamUseCase`):**
+
+1. **Followed streamer** — if `userId` is provided, checks `IFollowRepository.getFollowedStreamers(userId)`. Returns the first active stream from a followed streamer.
+2. **Top viewer** — returns the stream with the highest `viewer_count` (already ordered by `findActiveByMatchIds`).
+3. **None** — returns `{ stream: null, source: 'none' }` if no active streams exist.
+
+The user's own stream is always excluded from the candidates (cannot auto-select yourself).
+
+**Frontend (`StreamSelector`):** on initial mount, if no stream is pre-selected via URL param, calls this endpoint and calls `onStreamSelect(preferred.stream)` to propagate the selection to the parent (`LiveDetailsPage`).
+
+---
+
 ## OBS Integration
 
 ### How it works
@@ -80,8 +96,9 @@ save(stream) / update(stream) / delete(id)
 4. OBS starts streaming → mediamtx calls `POST /mediamtx/auth`
 5. Backend validates key format + DB lookup → responds **200 immediately** (non-blocking)
 6. Backend fires `StreamLifecycleService.startStreamIfNeeded()` asynchronously → `status=live`
-7. OBS stops → mediamtx calls `POST /mediamtx/disconnect` (via `runOnNotReady` hook)
-8. Backend fires `StreamLifecycleService.endStreamIfNeeded()` asynchronously → `status=ended`
+7. mediamtx also calls `POST /mediamtx/connect` (via `runOnReady` hook) — belt-and-suspenders for step 6
+8. OBS stops → mediamtx calls `POST /mediamtx/disconnect` (via `runOnNotReady` hook)
+9. Backend fires `StreamLifecycleService.endStreamIfNeeded()` asynchronously → `status=ended`
 
 ### Auth webhook — `src/presentation/http/controllers/mediamtx-webhook.controller.ts`
 
@@ -99,14 +116,21 @@ Flow:
    - Respond 200 **before** any async work
    - Fire-and-forget: `startStreamIfNeeded(streamKey)`
 
+### Connect webhook — `POST /mediamtx/connect`
+
+Called by mediamtx `runOnReady` hook when a publisher becomes active. Provides a reliable second trigger for `CREATED → LIVE` transition, in case the auth hook's fire-and-forget call to `startStreamIfNeeded` was missed (server restart, timing race, etc.).
+
 ### Disconnect webhook — `POST /mediamtx/disconnect`
 
-Called by mediamtx `runOnNotReady` hook when the publisher stops.
+Called by mediamtx `runOnNotReady` hook when the publisher stops (no more publisher AND no more readers).
 
 ```yaml
 # mediamtx.yml
 paths:
   "~^live/":
+    runOnReady: >-
+      curl -s -X POST
+      "${MEDIAMTX_BACKEND_URL:-http://localhost:3001}/mediamtx/connect?path=$MTX_PATH"
     runOnNotReady: >-
       curl -s -X POST
       "${MEDIAMTX_BACKEND_URL:-http://localhost:3001}/mediamtx/disconnect?path=$MTX_PATH"
@@ -296,10 +320,12 @@ Any `UPDATE` to `viewer_count` or `thumbnail_url` in the DB automatically fans o
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/stream` | Create stream (returns streamKey) |
-| `GET` | `/stream?matchId=&streamerId=` | List active streams |
+| `GET` | `/stream?matchId=` | List active (`live`) streams for a match |
+| `GET` | `/stream/preferred?matchId=&userId=` | Follow-aware preferred stream for a match |
 | `DELETE` | `/stream` | End a stream |
 | `POST` | `/stream/:id/join` | Register/heartbeat viewer session |
 | `POST` | `/stream/:id/leave` | Remove viewer session |
 | `PUT` | `/stream/:id/thumbnail` | Upload JPEG thumbnail (multipart) |
 | `POST` | `/mediamtx/auth` | mediamtx publish/read auth webhook |
-| `POST` | `/mediamtx/disconnect` | mediamtx disconnect webhook |
+| `POST` | `/mediamtx/connect` | mediamtx `runOnReady` hook — publisher active |
+| `POST` | `/mediamtx/disconnect` | mediamtx `runOnNotReady` hook — publisher stopped |

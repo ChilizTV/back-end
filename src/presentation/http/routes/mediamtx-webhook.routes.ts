@@ -11,7 +11,12 @@ mediamtxWebhookRoutes.post('/auth', (req, res, next) =>
   ctrl.auth(req, res).catch(next),
 );
 
-// mediamtx calls this when a publisher disconnects (runOnDisconnect)
+// mediamtx calls this when a path becomes ready (runOnReady) — publisher connected
+mediamtxWebhookRoutes.post('/connect', (req, res, next) =>
+  ctrl.connect(req, res).catch(next),
+);
+
+// mediamtx calls this when a publisher disconnects (runOnNotReady)
 mediamtxWebhookRoutes.post('/disconnect', (req, res, next) =>
   ctrl.disconnect(req, res).catch(next),
 );

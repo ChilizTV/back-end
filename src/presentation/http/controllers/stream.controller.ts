@@ -2,11 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { CreateStreamUseCase } from '../../../application/streams/use-cases/CreateStreamUseCase';
 import { GetActiveStreamsUseCase } from '../../../application/streams/use-cases/GetActiveStreamsUseCase';
+import { GetPreferredStreamUseCase } from '../../../application/streams/use-cases/GetPreferredStreamUseCase';
 import { EndStreamUseCase } from '../../../application/streams/use-cases/EndStreamUseCase';
 import { UpdateViewerCountUseCase } from '../../../application/streams/use-cases/UpdateViewerCountUseCase';
 import { ViewerSessionService } from '../../../infrastructure/services/ViewerSessionService';
 import { supabaseClient as supabase } from '../../../infrastructure/database/supabase/client';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
 import { logger } from '../../../infrastructure/logging/logger';
 
 @injectable()
@@ -16,14 +16,14 @@ export class StreamController {
     private readonly createStreamUseCase: CreateStreamUseCase,
     @inject(GetActiveStreamsUseCase)
     private readonly getActiveStreamsUseCase: GetActiveStreamsUseCase,
+    @inject(GetPreferredStreamUseCase)
+    private readonly getPreferredStreamUseCase: GetPreferredStreamUseCase,
     @inject(EndStreamUseCase)
     private readonly endStreamUseCase: EndStreamUseCase,
     @inject(UpdateViewerCountUseCase)
     private readonly updateViewerCountUseCase: UpdateViewerCountUseCase,
     @inject(ViewerSessionService)
     private readonly viewerSessionService: ViewerSessionService,
-    @inject('IStreamRepository')
-    private readonly streamRepository: IStreamRepository
   ) {}
 
   async createStream(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -47,10 +47,28 @@ export class StreamController {
     }
   }
 
+  async getPreferredStream(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const matchId = parseInt(req.query['matchId'] as string);
+      const userId = req.query['userId'] as string | undefined;
+
+      if (!matchId || isNaN(matchId)) {
+        res.status(400).json({ error: 'matchId required' });
+        return;
+      }
+
+      const result = await this.getPreferredStreamUseCase.execute(matchId, userId);
+      res.json({ success: true, stream: result.stream?.toJSON() ?? null, source: result.source });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getActiveStreams(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const streamerId = req.query['streamerId'] as string | undefined;
-      const streams = await this.getActiveStreamsUseCase.execute(streamerId);
+      const matchIdRaw = req.query['matchId'] as string | undefined;
+      const matchId = matchIdRaw ? parseInt(matchIdRaw) : undefined;
+      const streams = await this.getActiveStreamsUseCase.execute(matchId);
 
       res.json({
         success: true,

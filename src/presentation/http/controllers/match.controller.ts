@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { GetAllMatchesUseCase } from '../../../application/matches/use-cases/GetAllMatchesUseCase';
-import { GetLiveMatchesUseCase } from '../../../application/matches/use-cases/GetLiveMatchesUseCase';
-import { GetUpcomingMatchesUseCase } from '../../../application/matches/use-cases/GetUpcomingMatchesUseCase';
-import { GetMatchByIdUseCase } from '../../../application/matches/use-cases/GetMatchByIdUseCase';
-import { GetMatchesByLeagueUseCase } from '../../../application/matches/use-cases/GetMatchesByLeagueUseCase';
-import { GetMatchStatsUseCase } from '../../../application/matches/use-cases/GetMatchStatsUseCase';
-import { GetBrowseMatchesUseCase } from '../../../application/matches/use-cases/GetBrowseMatchesUseCase';
+import {
+  GetAllMatchesUseCase,
+  GetLiveMatchesUseCase,
+  GetUpcomingMatchesUseCase,
+  GetMatchByIdUseCase,
+  GetMatchesByLeagueUseCase,
+  GetMatchStatsUseCase,
+  GetBrowseMatchesUseCase,
+} from '../../../application/matches/use-cases';
 
 @injectable()
 export class MatchController {

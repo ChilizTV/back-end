@@ -5,7 +5,7 @@ import { chiliz } from 'viem/chains';
 import { chilizConfig, networkType } from '../../config/chiliz.config';
 import { baseSepolia } from '../chains';
 import { FOOTBALL_MATCH_ABI } from '../abis';
-import type { ExtendedOdds } from '../../external/types/ApiFootball.types';
+import type { ExtendedOdds } from '../../external/types';
 import { logger } from '../../logging/logger';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY as `0x${string}`;

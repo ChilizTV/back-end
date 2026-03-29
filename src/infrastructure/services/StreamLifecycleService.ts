@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { IStreamRepository } from '../../domain/streams/repositories/IStreamRepository';
-import { StreamStatus } from '../../domain/streams/entities/Stream';
+import { IStreamRepository } from '../../domain/streams/repositories';
+import { StreamStatus } from '../../domain/streams/entities';
 import { logger } from '../logging/logger';
 
 @injectable()

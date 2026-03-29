@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { JoinRoomUseCase } from '../../../application/chat/use-cases/JoinRoomUseCase';
-import { LeaveRoomUseCase } from '../../../application/chat/use-cases/LeaveRoomUseCase';
-import { SendMessageUseCase } from '../../../application/chat/use-cases/SendMessageUseCase';
-import { SendBetMessageUseCase } from '../../../application/chat/use-cases/SendBetMessageUseCase';
-import { GetRoomMessagesUseCase } from '../../../application/chat/use-cases/GetRoomMessagesUseCase';
-import { GetConnectedUsersUseCase } from '../../../application/chat/use-cases/GetConnectedUsersUseCase';
-import { GetChatStatsUseCase } from '../../../application/chat/use-cases/GetChatStatsUseCase';
+import {
+  JoinRoomUseCase,
+  LeaveRoomUseCase,
+  SendMessageUseCase,
+  SendBetMessageUseCase,
+  GetRoomMessagesUseCase,
+  GetConnectedUsersUseCase,
+  GetChatStatsUseCase,
+} from '../../../application/chat/use-cases';
 
 @injectable()
 export class ChatController {

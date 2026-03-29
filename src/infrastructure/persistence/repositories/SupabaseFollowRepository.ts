@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { Follow } from '../../../domain/follows/entities/Follow';
-import { IFollowRepository } from '../../../domain/follows/repositories/IFollowRepository';
+import { Follow } from '../../../domain/follows/entities';
+import { IFollowRepository } from '../../../domain/follows/repositories';
 import { logger } from '../../logging/logger';
 
 interface FollowRow {

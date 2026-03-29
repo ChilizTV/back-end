@@ -1,7 +1,7 @@
 import { injectable, inject } from 'tsyringe';
-import { WaitlistEntry } from '../../../domain/waitlist/entities/WaitlistEntry';
-import { IWaitlistRepository } from '../../../domain/waitlist/repositories/IWaitlistRepository';
-import { JoinWaitlistDto } from '../dto/JoinWaitlistDto';
+import { WaitlistEntry } from '../../../domain/waitlist/entities';
+import { IWaitlistRepository } from '../../../domain/waitlist/repositories';
+import { JoinWaitlistDto } from '../dto';
 import { ConflictError } from '../../../domain/shared/errors/ConflictError';
 
 @injectable()

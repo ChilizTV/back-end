@@ -1,6 +1,6 @@
 import { injectable } from 'tsyringe';
 import { container } from '../../config/di-container';
-import { SettlePredictionsUseCase } from '../../../application/predictions/use-cases/SettlePredictionsUseCase';
+import { SettlePredictionsUseCase } from '../../../application/predictions/use-cases';
 import { logger } from '../../logging/logger';
 
 /**

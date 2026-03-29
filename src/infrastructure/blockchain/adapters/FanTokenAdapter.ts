@@ -4,7 +4,7 @@ import { chiliz } from 'viem/chains';
 import { chilizConfig, networkType } from '../../config/chiliz.config';
 import { ERC20_ABI } from '../abis';
 import { logger } from '../../logging';
-import { IFanTokenRepository, UserTokenBalance } from '../../../domain/fan-tokens/repositories/IFanTokenRepository';
+import { IFanTokenRepository, UserTokenBalance } from '../../../domain/fan-tokens/repositories';
 
 const baseSepolia = defineChain({
   id: 84532,

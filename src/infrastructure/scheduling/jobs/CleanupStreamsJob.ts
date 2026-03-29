@@ -1,6 +1,6 @@
 import { injectable } from 'tsyringe';
 import { container } from '../../config/di-container';
-import { CleanupOldStreamsUseCase } from '../../../application/streams/use-cases/CleanupOldStreamsUseCase';
+import { CleanupOldStreamsUseCase } from '../../../application/streams/use-cases';
 import { logger } from '../../logging/logger';
 
 /**

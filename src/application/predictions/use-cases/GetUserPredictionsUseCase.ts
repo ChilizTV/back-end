@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { Prediction } from '../../../domain/predictions/entities/Prediction';
-import { IPredictionRepository } from '../../../domain/predictions/repositories/IPredictionRepository';
+import { Prediction } from '../../../domain/predictions/entities';
+import { IPredictionRepository } from '../../../domain/predictions/repositories';
 
 @injectable()
 export class GetUserPredictionsUseCase {

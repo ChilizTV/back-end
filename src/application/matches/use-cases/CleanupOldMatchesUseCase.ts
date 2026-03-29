@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
+import { IMatchRepository } from '../../../domain/matches/repositories';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**

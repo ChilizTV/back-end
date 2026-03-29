@@ -1,92 +1,114 @@
 import 'reflect-metadata';
 import { container } from 'tsyringe';
-import { IPredictionRepository } from '../../domain/predictions/repositories/IPredictionRepository';
-import { SupabasePredictionRepository } from '../persistence/repositories/SupabasePredictionRepository';
-import { CreatePredictionUseCase } from '../../application/predictions/use-cases/CreatePredictionUseCase';
-import { GetUserPredictionsUseCase } from '../../application/predictions/use-cases/GetUserPredictionsUseCase';
-import { GetUserStatsUseCase } from '../../application/predictions/use-cases/GetUserStatsUseCase';
-import { SettlePredictionsUseCase } from '../../application/predictions/use-cases/SettlePredictionsUseCase';
-import { PredictionController } from '../../presentation/http/controllers/prediction.controller';
-import { IMatchRepository } from '../../domain/matches/repositories/IMatchRepository';
-import { SupabaseMatchRepository } from '../persistence/repositories/SupabaseMatchRepository';
-import { GetAllMatchesUseCase } from '../../application/matches/use-cases/GetAllMatchesUseCase';
-import { GetLiveMatchesUseCase } from '../../application/matches/use-cases/GetLiveMatchesUseCase';
-import { GetUpcomingMatchesUseCase } from '../../application/matches/use-cases/GetUpcomingMatchesUseCase';
-import { GetMatchByIdUseCase } from '../../application/matches/use-cases/GetMatchByIdUseCase';
-import { GetMatchesByLeagueUseCase } from '../../application/matches/use-cases/GetMatchesByLeagueUseCase';
-import { GetMatchStatsUseCase } from '../../application/matches/use-cases/GetMatchStatsUseCase';
-import { GetBrowseMatchesUseCase } from '../../application/matches/use-cases/GetBrowseMatchesUseCase';
-import { MatchController } from '../../presentation/http/controllers/match.controller';
-import { IChatRepository } from '../../domain/chat/repositories/IChatRepository';
-import { SupabaseChatRepository } from '../persistence/repositories/SupabaseChatRepository';
-import { JoinRoomUseCase } from '../../application/chat/use-cases/JoinRoomUseCase';
-import { LeaveRoomUseCase } from '../../application/chat/use-cases/LeaveRoomUseCase';
-import { SendMessageUseCase } from '../../application/chat/use-cases/SendMessageUseCase';
-import { SendBetMessageUseCase } from '../../application/chat/use-cases/SendBetMessageUseCase';
-import { GetRoomMessagesUseCase } from '../../application/chat/use-cases/GetRoomMessagesUseCase';
-import { GetConnectedUsersUseCase } from '../../application/chat/use-cases/GetConnectedUsersUseCase';
-import { GetChatStatsUseCase } from '../../application/chat/use-cases/GetChatStatsUseCase';
-import { ChatController } from '../../presentation/http/controllers/chat.controller';
-import { IWaitlistRepository } from '../../domain/waitlist/repositories/IWaitlistRepository';
-import { SupabaseWaitlistRepository } from '../persistence/repositories/SupabaseWaitlistRepository';
-import { JoinWaitlistUseCase } from '../../application/waitlist/use-cases/JoinWaitlistUseCase';
-import { CheckAccessUseCase } from '../../application/waitlist/use-cases/CheckAccessUseCase';
-import { GetWaitlistStatsUseCase } from '../../application/waitlist/use-cases/GetWaitlistStatsUseCase';
-import { WaitlistController } from '../../presentation/http/controllers/waitlist.controller';
-import { AuthController } from '../../presentation/http/controllers/auth.controller';
-import { IStreamRepository } from '../../domain/streams/repositories/IStreamRepository';
-import { SupabaseStreamRepository } from '../persistence/repositories/SupabaseStreamRepository';
-import { CreateStreamUseCase } from '../../application/streams/use-cases/CreateStreamUseCase';
-import { GetActiveStreamsUseCase } from '../../application/streams/use-cases/GetActiveStreamsUseCase';
-import { GetPreferredStreamUseCase } from '../../application/streams/use-cases/GetPreferredStreamUseCase';
-import { EndStreamUseCase } from '../../application/streams/use-cases/EndStreamUseCase';
-import { UpdateViewerCountUseCase } from '../../application/streams/use-cases/UpdateViewerCountUseCase';
-import { CleanupOldStreamsUseCase } from '../../application/streams/use-cases/CleanupOldStreamsUseCase';
-import { StreamController } from '../../presentation/http/controllers/stream.controller';
-import { IStreamWalletRepository } from '../../domain/stream-wallet/repositories/IStreamWalletRepository';
-import { SupabaseStreamWalletRepository } from '../persistence/repositories/SupabaseStreamWalletRepository';
-import { GetStreamerDonationsUseCase } from '../../application/stream-wallet/use-cases/GetStreamerDonationsUseCase';
-import { GetStreamerSubscriptionsUseCase } from '../../application/stream-wallet/use-cases/GetStreamerSubscriptionsUseCase';
-import { GetStreamerStatsUseCase } from '../../application/stream-wallet/use-cases/GetStreamerStatsUseCase';
-import { GetDonorHistoryUseCase } from '../../application/stream-wallet/use-cases/GetDonorHistoryUseCase';
-import { GetSubscriberHistoryUseCase } from '../../application/stream-wallet/use-cases/GetSubscriberHistoryUseCase';
-import { StreamWalletController } from '../../presentation/http/controllers/stream-wallet.controller';
-import { TokenBalanceAdapter } from '../blockchain/adapters/TokenBalanceAdapter';
-import { MarketOddsAdapter } from '../blockchain/adapters/MarketOddsAdapter';
-import { MatchResolutionAdapter } from '../blockchain/adapters/MatchResolutionAdapter';
-import { BettingContractDeploymentAdapter } from '../blockchain/adapters/BettingContractDeploymentAdapter';
-import { FootballApiAdapter } from '../external/adapters/FootballApiAdapter';
-import { ResolveFinishedMatchesUseCase } from '../../application/matches/use-cases/ResolveFinishedMatchesUseCase';
-import { SyncMatchesUseCase } from '../../application/matches/use-cases/SyncMatchesUseCase';
-import { CleanupOldMatchesUseCase } from '../../application/matches/use-cases/CleanupOldMatchesUseCase';
+import { IPredictionRepository } from '../../domain/predictions/repositories';
+import {
+  SupabasePredictionRepository,
+  SupabaseMatchRepository,
+  SupabaseChatRepository,
+  SupabaseWaitlistRepository,
+  SupabaseStreamRepository,
+  SupabaseStreamWalletRepository,
+  SupabaseFollowRepository,
+} from '../persistence/repositories';
+import {
+  CreatePredictionUseCase,
+  GetUserPredictionsUseCase,
+  GetUserStatsUseCase,
+  SettlePredictionsUseCase,
+} from '../../application/predictions/use-cases';
+import {
+  GetAllMatchesUseCase,
+  GetLiveMatchesUseCase,
+  GetUpcomingMatchesUseCase,
+  GetMatchByIdUseCase,
+  GetMatchesByLeagueUseCase,
+  GetMatchStatsUseCase,
+  GetBrowseMatchesUseCase,
+  ResolveFinishedMatchesUseCase,
+  SyncMatchesUseCase,
+  CleanupOldMatchesUseCase,
+} from '../../application/matches/use-cases';
+import {
+  JoinRoomUseCase,
+  LeaveRoomUseCase,
+  SendMessageUseCase,
+  SendBetMessageUseCase,
+  GetRoomMessagesUseCase,
+  GetConnectedUsersUseCase,
+  GetChatStatsUseCase,
+} from '../../application/chat/use-cases';
+import {
+  JoinWaitlistUseCase,
+  CheckAccessUseCase,
+  GetWaitlistStatsUseCase,
+} from '../../application/waitlist/use-cases';
+import {
+  CreateStreamUseCase,
+  GetActiveStreamsUseCase,
+  GetPreferredStreamUseCase,
+  EndStreamUseCase,
+  UpdateViewerCountUseCase,
+  CleanupOldStreamsUseCase,
+} from '../../application/streams/use-cases';
+import {
+  GetStreamerDonationsUseCase,
+  GetStreamerSubscriptionsUseCase,
+  GetStreamerStatsUseCase,
+  GetDonorHistoryUseCase,
+  GetSubscriberHistoryUseCase,
+} from '../../application/stream-wallet/use-cases';
+import {
+  FollowStreamerUseCase,
+  UnfollowStreamerUseCase,
+  GetIsFollowingUseCase,
+  GetFollowerCountUseCase,
+  GetFollowedStreamersUseCase,
+} from '../../application/follows/use-cases';
+import {
+  PredictionController,
+  MatchController,
+  ChatController,
+  WaitlistController,
+  AuthController,
+  StreamController,
+  StreamWalletController,
+  FanTokensController,
+  FollowController,
+  MediamtxWebhookController,
+} from '../../presentation/http/controllers';
+import {
+  TokenBalanceAdapter,
+  MarketOddsAdapter,
+  MatchResolutionAdapter,
+  BettingContractDeploymentAdapter,
+  FanTokenAdapter,
+} from '../blockchain/adapters';
+import { FootballApiAdapter } from '../external/adapters';
 import { JobScheduler } from '../scheduling/JobScheduler';
-import { SyncMatchesJob } from '../scheduling/jobs/SyncMatchesJob';
-import { ResolveMarketsJob } from '../scheduling/jobs/ResolveMarketsJob';
-import { CleanupStreamsJob } from '../scheduling/jobs/CleanupStreamsJob';
-import { StaleStreamCleanupJob } from '../scheduling/jobs/StaleStreamCleanupJob';
-import { SettlePredictionsJob } from '../scheduling/jobs/SettlePredictionsJob';
-import { ViewerReconcileJob } from '../scheduling/jobs/ViewerReconcileJob';
-import { ViewerSessionService } from '../services/ViewerSessionService';
-import { DeployMissingContractsCommand } from '../../presentation/cli/commands/DeployMissingContractsCommand';
-import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarketsCommand';
-import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
-import { MediamtxWebhookController } from '../../presentation/http/controllers/mediamtx-webhook.controller';
-import { StreamLifecycleService } from '../services/StreamLifecycleService';
-import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
-import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
-import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
-import { IFanTokenRepository } from '../../domain/fan-tokens/repositories/IFanTokenRepository';
-import { FanTokenAdapter } from '../blockchain/adapters/FanTokenAdapter';
-import { GetUserFanTokenBalancesUseCase } from '../../application/fan-tokens/use-cases/GetUserFanTokenBalancesUseCase';
-import { FanTokensController } from '../../presentation/http/controllers/fan-tokens.controller';
-import { IFollowRepository } from '../../domain/follows/repositories/IFollowRepository';
-import { SupabaseFollowRepository } from '../persistence/repositories/SupabaseFollowRepository';
-import { FollowStreamerUseCase } from '../../application/follows/use-cases/FollowStreamerUseCase';
-import { UnfollowStreamerUseCase } from '../../application/follows/use-cases/UnfollowStreamerUseCase';
-import { GetIsFollowingUseCase } from '../../application/follows/use-cases/GetIsFollowingUseCase';
-import { GetFollowerCountUseCase } from '../../application/follows/use-cases/GetFollowerCountUseCase';
-import { GetFollowedStreamersUseCase } from '../../application/follows/use-cases/GetFollowedStreamersUseCase';
-import { FollowController } from '../../presentation/http/controllers/follow.controller';
+import {
+  SyncMatchesJob,
+  ResolveMarketsJob,
+  CleanupStreamsJob,
+  StaleStreamCleanupJob,
+  SettlePredictionsJob,
+  ViewerReconcileJob,
+} from '../scheduling/jobs';
+import { ViewerSessionService, StreamLifecycleService } from '../services';
+import {
+  DeployMissingContractsCommand,
+  SetupMarketsCommand,
+  TestMatchLifecycleCommand,
+} from '../../presentation/cli/commands';
+import { BlockchainEventListener } from '../blockchain';
+import { StreamWalletIndexer, BettingEventIndexer } from '../blockchain/indexers';
+import { IFanTokenRepository } from '../../domain/fan-tokens/repositories';
+import { GetUserFanTokenBalancesUseCase } from '../../application/fan-tokens/use-cases';
+import { IFollowRepository } from '../../domain/follows/repositories';
+import { IMatchRepository } from '../../domain/matches/repositories';
+import { IChatRepository } from '../../domain/chat/repositories';
+import { IWaitlistRepository } from '../../domain/waitlist/repositories';
+import { IStreamRepository } from '../../domain/streams/repositories';
+import { IStreamWalletRepository } from '../../domain/stream-wallet/repositories';
 
 export function setupDependencyInjection(): void {
   // Infrastructure - Repositories

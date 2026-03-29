@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
 import { container } from '../../config/di-container';
 import { StreamLifecycleService } from '../../services/StreamLifecycleService';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
+import { IStreamRepository } from '../../../domain/streams/repositories';
 import { logger } from '../../logging/logger';
 
 /**

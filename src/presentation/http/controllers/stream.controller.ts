@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { CreateStreamUseCase } from '../../../application/streams/use-cases/CreateStreamUseCase';
-import { GetActiveStreamsUseCase } from '../../../application/streams/use-cases/GetActiveStreamsUseCase';
-import { GetPreferredStreamUseCase } from '../../../application/streams/use-cases/GetPreferredStreamUseCase';
-import { EndStreamUseCase } from '../../../application/streams/use-cases/EndStreamUseCase';
-import { UpdateViewerCountUseCase } from '../../../application/streams/use-cases/UpdateViewerCountUseCase';
-import { ViewerSessionService } from '../../../infrastructure/services/ViewerSessionService';
+import {
+  CreateStreamUseCase,
+  GetActiveStreamsUseCase,
+  GetPreferredStreamUseCase,
+  EndStreamUseCase,
+  UpdateViewerCountUseCase,
+} from '../../../application/streams/use-cases';
+import { ViewerSessionService } from '../../../infrastructure/services';
 import { supabaseClient as supabase } from '../../../infrastructure/database/supabase/client';
 import { logger } from '../../../infrastructure/logging/logger';
 

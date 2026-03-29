@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
+import { IMatchRepository } from '../../../domain/matches/repositories';
+import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**

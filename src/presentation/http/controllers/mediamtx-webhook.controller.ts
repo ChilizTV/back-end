@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { IStreamRepository } from '../../../domain/streams/repositories/IStreamRepository';
-import { StreamLifecycleService } from '../../../infrastructure/services/StreamLifecycleService';
-import { extractStreamKey } from '../../../infrastructure/streaming/utils/mediamtx-path';
+import { IStreamRepository } from '../../../domain/streams/repositories';
+import { StreamLifecycleService } from '../../../infrastructure/services';
+import { extractStreamKey } from '../../../infrastructure/streaming/utils';
 import { logger } from '../../../infrastructure/logging/logger';
 import { env } from '../../../infrastructure/config/environment';
 

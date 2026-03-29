@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { ConnectedUser } from '../../../domain/chat/entities/ConnectedUser';
-import { IChatRepository } from '../../../domain/chat/repositories/IChatRepository';
+import { ConnectedUser } from '../../../domain/chat/entities';
+import { IChatRepository } from '../../../domain/chat/repositories';
 
 @injectable()
 export class JoinRoomUseCase {

@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IStreamWalletRepository } from '../../stream-wallet/repositories/IStreamWalletRepository';
+import { IStreamWalletRepository } from '../../stream-wallet/repositories';
 
 /**
  * Domain Service: Checks if a user has an active subscription

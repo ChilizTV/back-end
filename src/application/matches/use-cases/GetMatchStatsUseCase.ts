@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository, MatchStats } from '../../../domain/matches/repositories/IMatchRepository';
+import { IMatchRepository, MatchStats } from '../../../domain/matches/repositories';
 
 @injectable()
 export class GetMatchStatsUseCase {

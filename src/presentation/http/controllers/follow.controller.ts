@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { FollowStreamerUseCase } from '../../../application/follows/use-cases/FollowStreamerUseCase';
-import { UnfollowStreamerUseCase } from '../../../application/follows/use-cases/UnfollowStreamerUseCase';
-import { GetIsFollowingUseCase } from '../../../application/follows/use-cases/GetIsFollowingUseCase';
-import { GetFollowerCountUseCase } from '../../../application/follows/use-cases/GetFollowerCountUseCase';
-import { GetFollowedStreamersUseCase } from '../../../application/follows/use-cases/GetFollowedStreamersUseCase';
+import {
+  FollowStreamerUseCase,
+  UnfollowStreamerUseCase,
+  GetIsFollowingUseCase,
+  GetFollowerCountUseCase,
+  GetFollowedStreamersUseCase,
+} from '../../../application/follows/use-cases';
 
 @injectable()
 export class FollowController {

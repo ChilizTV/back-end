@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { CreatePredictionUseCase } from '../../../application/predictions/use-cases/CreatePredictionUseCase';
-import { GetUserPredictionsUseCase } from '../../../application/predictions/use-cases/GetUserPredictionsUseCase';
-import { GetUserStatsUseCase } from '../../../application/predictions/use-cases/GetUserStatsUseCase';
-import { CreatePredictionDto } from '../../../application/predictions/dto/CreatePredictionDto';
+import {
+  CreatePredictionUseCase,
+  GetUserPredictionsUseCase,
+  GetUserStatsUseCase,
+} from '../../../application/predictions/use-cases';
+import { CreatePredictionDto } from '../../../application/predictions/dto';
 
 @injectable()
 export class PredictionController {

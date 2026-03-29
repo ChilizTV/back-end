@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IChatRepository, ChatStats } from '../../../domain/chat/repositories/IChatRepository';
+import { IChatRepository, ChatStats } from '../../../domain/chat/repositories';
 
 @injectable()
 export class GetChatStatsUseCase {

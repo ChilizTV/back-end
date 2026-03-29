@@ -1,6 +1,6 @@
 import { injectable } from 'tsyringe';
 import { container } from '../../config/di-container';
-import { ResolveFinishedMatchesUseCase } from '../../../application/matches/use-cases/ResolveFinishedMatchesUseCase';
+import { ResolveFinishedMatchesUseCase } from '../../../application/matches/use-cases';
 import { logger } from '../../logging/logger';
 
 /**

@@ -3,7 +3,9 @@ import cron from 'node-cron';
 import { SyncMatchesJob } from './jobs/SyncMatchesJob';
 import { ResolveMarketsJob } from './jobs/ResolveMarketsJob';
 import { CleanupStreamsJob } from './jobs/CleanupStreamsJob';
+import { StaleStreamCleanupJob } from './jobs/StaleStreamCleanupJob';
 import { SettlePredictionsJob } from './jobs/SettlePredictionsJob';
+import { ViewerReconcileJob } from './jobs/ViewerReconcileJob';
 import { logger } from '../logging/logger';
 
 /**
@@ -19,7 +21,9 @@ export class JobScheduler {
         private readonly syncMatchesJob: SyncMatchesJob,
         private readonly resolveMarketsJob: ResolveMarketsJob,
         private readonly cleanupStreamsJob: CleanupStreamsJob,
-        private readonly settlePredictionsJob: SettlePredictionsJob
+        private readonly staleStreamCleanupJob: StaleStreamCleanupJob,
+        private readonly settlePredictionsJob: SettlePredictionsJob,
+        private readonly viewerReconcileJob: ViewerReconcileJob
     ) {}
 
     /**
@@ -39,6 +43,18 @@ export class JobScheduler {
             'CleanupStreams',
             this.cleanupStreamsJob.getSchedule(),
             () => this.cleanupStreamsJob.execute()
+        );
+
+        this.startCronJob(
+            'StaleStreamCleanup',
+            this.staleStreamCleanupJob.getSchedule(),
+            () => this.staleStreamCleanupJob.execute()
+        );
+
+        this.startCronJob(
+            'ViewerReconcile',
+            this.viewerReconcileJob.getSchedule(),
+            () => this.viewerReconcileJob.execute()
         );
 
         // Interval-based jobs

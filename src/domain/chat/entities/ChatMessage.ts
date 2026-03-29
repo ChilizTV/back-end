@@ -8,6 +8,7 @@ export enum MessageType {
 export interface ChatMessageProps {
   id: string;
   matchId: number;
+  streamId?: string;
   userId: string;
   walletAddress: string;
   username: string;
@@ -44,6 +45,10 @@ export class ChatMessage {
     return this.props.matchId;
   }
 
+  getStreamId(): string | undefined {
+    return this.props.streamId;
+  }
+
   getUserId(): string {
     return this.props.userId;
   }
@@ -56,6 +61,7 @@ export class ChatMessage {
     return {
       id: this.props.id,
       matchId: this.props.matchId,
+      streamId: this.props.streamId ?? null,
       userId: this.props.userId,
       walletAddress: this.props.walletAddress,
       username: this.props.username,

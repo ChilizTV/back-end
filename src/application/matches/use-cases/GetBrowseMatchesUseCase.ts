@@ -65,7 +65,7 @@ export class GetBrowseMatchesUseCase {
         return {
           streamId: sJson.id,
           streamerName: sJson.streamerName,
-          thumbnailUrl: null,
+          thumbnailUrl: sJson.thumbnailUrl ?? null,
           viewers: sJson.viewerCount,
         };
       });

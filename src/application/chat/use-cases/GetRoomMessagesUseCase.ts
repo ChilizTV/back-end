@@ -9,7 +9,7 @@ export class GetRoomMessagesUseCase {
     private readonly chatRepository: IChatRepository
   ) {}
 
-  async execute(matchId: number, limit: number = 50, offset: number = 0): Promise<ChatMessage[]> {
-    return await this.chatRepository.findMessagesByMatchId(matchId, limit, offset);
+  async execute(matchId: number, limit: number = 50, offset: number = 0, streamId?: string): Promise<ChatMessage[]> {
+    return await this.chatRepository.findMessagesByMatchId(matchId, limit, offset, streamId);
   }
 }

@@ -1,0 +1,53 @@
+###############################################################################
+# mediamtx.yml — Low-Latency HLS + RTMP + WHIP  (v1.16+ syntax)
+###############################################################################
+
+logLevel: info
+logDestinations: [stdout]
+
+# Internal API (for readiness checks)
+api: yes
+apiAddress: :9997
+
+###############################################################################
+# Auth — mediamtx calls Node.js backend to validate every publisher.
+# Viewers (read/playback actions) are always allowed by the backend.
+authMethod: http
+authHTTPAddress: http://localhost:3001/mediamtx/auth
+
+###############################################################################
+# RTMP — OBS ingest on port 1935
+rtmp: yes
+rtmpAddress: :1935
+
+###############################################################################
+# HLS — fMP4 LL-HLS output served on port 8888
+hls: yes
+hlsAddress: :8888
+hlsAllowOrigins: ['*']    # Lock to frontend origin in production
+hlsAlwaysRemux: yes       # Generate HLS even when no viewer is watching
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms    # Enables LL-HLS with fMP4 packaging automatically
+
+###############################################################################
+# WebRTC — WHIP ingest endpoint (browser → mediamtx) on port 8889
+webrtc: yes
+webrtcAddress: :8889
+webrtcAllowOrigins: ['*'] # Lock to frontend origin in production
+webrtcICEServers2: []     # No STUN needed on localhost; add in production
+
+###############################################################################
+# Paths — accept any path starting with live/
+paths:
+  "~^live/":
+    # Duplicate publisher protection is handled by the auth webhook:
+    # only one valid stream key can be active at a time via the lifecycle service.
+
+    # Docker: set MEDIAMTX_BACKEND_URL=http://<service-name>:3001 in compose
+    runOnReady: >-
+      curl -s -X POST
+      "${MEDIAMTX_BACKEND_URL:-http://localhost:3001}/mediamtx/connect?path=$MTX_PATH"
+    runOnNotReady: >-
+      curl -s -X POST
+      "${MEDIAMTX_BACKEND_URL:-http://localhost:3001}/mediamtx/disconnect?path=$MTX_PATH"

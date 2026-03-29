@@ -297,24 +297,17 @@ export class StreamWalletIndexer {
             } else {
                 logger.info('Indexed donation', { txHash: transactionHash.slice(0, 10), amount: (Number(amountBigInt) / 1e18).toFixed(4) });
 
-                let matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
-                if (!matchId && networkType === 'testnet') {
-                    matchId = 999001;
-                }
+                const matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
                 if (matchId) {
-                    // Verify match exists before inserting chat message
-                    const matchExists = await this.verifyMatchExists(matchId);
-                    if (matchExists) {
-                        await this.insertChatMessageForStreamerEvent(
-                            matchId,
-                            'donation',
-                            donor.toLowerCase(),
-                            (Number(amountBigInt) / 1e18).toString(),
-                            message || undefined
-                        );
-                    } else {
-                        logger.warn('Match not found for donation chat message', { matchId });
-                    }
+                    await this.insertChatMessageForStreamerEvent(
+                        matchId,
+                        'donation',
+                        donor.toLowerCase(),
+                        (Number(amountBigInt) / 1e18).toString(),
+                        message || undefined
+                    );
+                } else {
+                    logger.warn('No active stream found for donation, skipping chat message', { streamer });
                 }
             }
         } catch (error) {
@@ -379,23 +372,16 @@ export class StreamWalletIndexer {
             } else {
                 logger.info('Indexed subscription', { txHash: transactionHash.slice(0, 10), amount: (Number(amountBigInt) / 1e18).toFixed(4) });
 
-                let matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
-                if (!matchId && networkType === 'testnet') {
-                    matchId = 999001;
-                }
+                const matchId = await this.getMatchIdForStreamer(streamer.toLowerCase(), streamWalletAddress?.toLowerCase() || null);
                 if (matchId) {
-                    // Verify match exists before inserting chat message
-                    const matchExists = await this.verifyMatchExists(matchId);
-                    if (matchExists) {
-                        await this.insertChatMessageForStreamerEvent(
-                            matchId,
-                            'subscription',
-                            subscriber.toLowerCase(),
-                            (Number(amountBigInt) / 1e18).toString()
-                        );
-                    } else {
-                        logger.warn('Match not found for subscription chat message', { matchId });
-                    }
+                    await this.insertChatMessageForStreamerEvent(
+                        matchId,
+                        'subscription',
+                        subscriber.toLowerCase(),
+                        (Number(amountBigInt) / 1e18).toString()
+                    );
+                } else {
+                    logger.warn('No active stream found for subscription, skipping chat message', { streamer });
                 }
             }
         } catch (error) {
@@ -409,11 +395,13 @@ export class StreamWalletIndexer {
         try {
             const addresses = [streamerAddress.toLowerCase()];
             if (streamWalletAddress) addresses.push(streamWalletAddress.toLowerCase());
+            
+            const conditions = addresses.map(a => `streamer_wallet_address.ilike.${a}`).join(',');
 
             const { data, error } = await supabase
                 .from('live_streams')
                 .select('match_id')
-                .in('streamer_wallet_address', addresses)
+                .or(conditions)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
@@ -422,20 +410,6 @@ export class StreamWalletIndexer {
             return data.match_id;
         } catch {
             return null;
-        }
-    }
-
-    private async verifyMatchExists(matchId: number): Promise<boolean> {
-        try {
-            const { data, error } = await supabase
-                .from('matches')
-                .select('api_football_id')
-                .eq('api_football_id', matchId)
-                .maybeSingle();
-
-            return !error && !!data;
-        } catch {
-            return false;
         }
     }
 

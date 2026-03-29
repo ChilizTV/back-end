@@ -38,6 +38,7 @@ import { IStreamRepository } from '../../domain/streams/repositories/IStreamRepo
 import { SupabaseStreamRepository } from '../persistence/repositories/SupabaseStreamRepository';
 import { CreateStreamUseCase } from '../../application/streams/use-cases/CreateStreamUseCase';
 import { GetActiveStreamsUseCase } from '../../application/streams/use-cases/GetActiveStreamsUseCase';
+import { GetPreferredStreamUseCase } from '../../application/streams/use-cases/GetPreferredStreamUseCase';
 import { EndStreamUseCase } from '../../application/streams/use-cases/EndStreamUseCase';
 import { UpdateViewerCountUseCase } from '../../application/streams/use-cases/UpdateViewerCountUseCase';
 import { CleanupOldStreamsUseCase } from '../../application/streams/use-cases/CleanupOldStreamsUseCase';
@@ -62,13 +63,15 @@ import { JobScheduler } from '../scheduling/JobScheduler';
 import { SyncMatchesJob } from '../scheduling/jobs/SyncMatchesJob';
 import { ResolveMarketsJob } from '../scheduling/jobs/ResolveMarketsJob';
 import { CleanupStreamsJob } from '../scheduling/jobs/CleanupStreamsJob';
+import { StaleStreamCleanupJob } from '../scheduling/jobs/StaleStreamCleanupJob';
 import { SettlePredictionsJob } from '../scheduling/jobs/SettlePredictionsJob';
+import { ViewerReconcileJob } from '../scheduling/jobs/ViewerReconcileJob';
+import { ViewerSessionService } from '../services/ViewerSessionService';
 import { DeployMissingContractsCommand } from '../../presentation/cli/commands/DeployMissingContractsCommand';
 import { SetupMarketsCommand } from '../../presentation/cli/commands/SetupMarketsCommand';
 import { TestMatchLifecycleCommand } from '../../presentation/cli/commands/TestMatchLifecycleCommand';
-import { SocketServer } from '../../presentation/websocket/SocketServer';
-import { StreamSocketHandler } from '../../presentation/websocket/handlers/StreamSocketHandler';
-import { HlsStreamProcessor } from '../streaming/HlsStreamProcessor';
+import { MediamtxWebhookController } from '../../presentation/http/controllers/mediamtx-webhook.controller';
+import { StreamLifecycleService } from '../services/StreamLifecycleService';
 import { BlockchainEventListener } from '../blockchain/BlockchainEventListener';
 import { StreamWalletIndexer } from '../blockchain/indexers/StreamWalletIndexer';
 import { BettingEventIndexer } from '../blockchain/indexers/BettingEventIndexer';
@@ -156,6 +159,7 @@ export function setupDependencyInjection(): void {
   // Application - Stream Use Cases
   container.registerSingleton(CreateStreamUseCase);
   container.registerSingleton(GetActiveStreamsUseCase);
+  container.registerSingleton(GetPreferredStreamUseCase);
   container.registerSingleton(EndStreamUseCase);
   container.registerSingleton(UpdateViewerCountUseCase);
   container.registerSingleton(CleanupOldStreamsUseCase);
@@ -181,7 +185,9 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(SyncMatchesJob);
   container.registerSingleton(ResolveMarketsJob);
   container.registerSingleton(CleanupStreamsJob);
+  container.registerSingleton(StaleStreamCleanupJob);
   container.registerSingleton(SettlePredictionsJob);
+  container.registerSingleton(ViewerReconcileJob);
   container.registerSingleton(JobScheduler);
 
   // Presentation - CLI Commands
@@ -189,12 +195,12 @@ export function setupDependencyInjection(): void {
   container.registerSingleton(SetupMarketsCommand);
   container.registerSingleton(TestMatchLifecycleCommand);
 
-  // Infrastructure - Streaming
-  container.registerSingleton(HlsStreamProcessor);
+  // Infrastructure - Stream Lifecycle + Viewer Sessions
+  container.registerSingleton(StreamLifecycleService);
+  container.registerSingleton(ViewerSessionService);
 
-  // Presentation - WebSocket
-  container.registerSingleton(SocketServer);
-  container.registerSingleton(StreamSocketHandler);
+  // Presentation - mediamtx webhook
+  container.registerSingleton(MediamtxWebhookController);
 
   // Infrastructure - Blockchain Indexers
   container.registerSingleton(BlockchainEventListener);

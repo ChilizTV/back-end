@@ -1,5 +1,6 @@
 export interface SendMessageDto {
   matchId: number;
+  streamId?: string;
   userId: string;
   walletAddress: string;
   username: string;

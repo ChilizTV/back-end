@@ -29,6 +29,9 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().optional(),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+
+  MEDIAMTX_API_URL: z.string().url().default('http://localhost:9997'),
+  MEDIAMTX_PUBLISH_SECRET: z.string().optional(),
 });
 
 export type Environment = z.infer<typeof envSchema>;

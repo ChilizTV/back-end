@@ -8,6 +8,7 @@ import { logger } from '../../logging/logger';
 interface ChatMessageRow {
   id: string;
   match_id: number;
+  stream_id?: string | null;
   user_id: string;
   wallet_address: string;
   username: string;
@@ -50,11 +51,19 @@ export class SupabaseChatRepository implements IChatRepository {
     return this.rowToMessage(data);
   }
 
-  async findMessagesByMatchId(matchId: number, limit: number, offset: number): Promise<ChatMessage[]> {
-    const { data: rows, error } = await supabase
+  async findMessagesByMatchId(matchId: number, limit: number, offset: number, streamId?: string): Promise<ChatMessage[]> {
+    let query = supabase
       .from('chat_messages')
       .select('*')
-      .eq('match_id', matchId)
+      .eq('match_id', matchId);
+
+    if (streamId) {
+      query = query.eq('stream_id', streamId);
+    } else {
+      query = query.is('stream_id', null);
+    }
+
+    const { data: rows, error } = await query
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -173,6 +182,7 @@ export class SupabaseChatRepository implements IChatRepository {
     return ChatMessage.reconstitute({
       id: row.id,
       matchId: row.match_id,
+      streamId: row.stream_id ?? undefined,
       userId: row.user_id,
       walletAddress: row.wallet_address,
       username: row.username,
@@ -192,6 +202,7 @@ export class SupabaseChatRepository implements IChatRepository {
     return {
       id: json.id,
       match_id: json.matchId,
+      stream_id: json.streamId ?? null,
       user_id: json.userId,
       wallet_address: json.walletAddress,
       username: json.username,

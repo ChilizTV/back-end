@@ -10,7 +10,7 @@ export interface ChatStats {
 
 export interface IChatRepository {
   saveMessage(message: ChatMessage): Promise<ChatMessage>;
-  findMessagesByMatchId(matchId: number, limit: number, offset: number): Promise<ChatMessage[]>;
+  findMessagesByMatchId(matchId: number, limit: number, offset: number, streamId?: string): Promise<ChatMessage[]>;
   findFeaturedMessages(matchId: number): Promise<ChatMessage[]>;
 
   addConnectedUser(user: ConnectedUser): Promise<ConnectedUser>;

@@ -1,3 +1,9 @@
+export enum StreamStatus {
+  CREATED = 'created',
+  LIVE    = 'live',
+  ENDED   = 'ended',
+}
+
 export interface StreamProps {
   id: string;
   matchId: number;
@@ -7,7 +13,9 @@ export interface StreamProps {
   streamKey: string;
   hlsUrl?: string;
   title?: string;
-  isLive: boolean;
+  thumbnailUrl?: string;
+  status: StreamStatus;
+  lastHeartbeatAt?: Date;
   viewerCount: number;
   endedAt?: Date;
   createdAt: Date;
@@ -29,9 +37,26 @@ export class Stream {
     return new Stream(props);
   }
 
+  /** Transition to LIVE. No-op if already LIVE (idempotent). */
+  start(): void {
+    if (this.props.status === StreamStatus.LIVE) return;
+    this.props.status = StreamStatus.LIVE;
+  }
+
+  /** Transition to ENDED. No-op if already ENDED (idempotent). */
   end(): void {
-    this.props.isLive = false;
+    if (this.props.status === StreamStatus.ENDED) return;
+    this.props.status = StreamStatus.ENDED;
     this.props.endedAt = new Date();
+  }
+
+  /** Refresh heartbeat timestamp — guarantees lastHeartbeatAt is non-null while LIVE. */
+  heartbeat(): void {
+    this.props.lastHeartbeatAt = new Date();
+  }
+
+  getStatus(): StreamStatus {
+    return this.props.status;
   }
 
   updateViewerCount(count: number): void {
@@ -46,8 +71,13 @@ export class Stream {
     return this.props.streamKey;
   }
 
+  getStreamerId(): string {
+    return this.props.streamerId;
+  }
+
+  /** Backward-compatible helper. Returns true only when status is LIVE. */
   isLive(): boolean {
-    return this.props.isLive;
+    return this.props.status === StreamStatus.LIVE;
   }
 
   toJSON(): any {
@@ -60,7 +90,10 @@ export class Stream {
       streamKey: this.props.streamKey,
       hlsUrl: this.props.hlsUrl,
       title: this.props.title,
-      isLive: this.props.isLive,
+      status: this.props.status,
+      isLive: this.props.status === StreamStatus.LIVE,
+      thumbnailUrl: this.props.thumbnailUrl ?? null,
+      lastHeartbeatAt: this.props.lastHeartbeatAt,
       viewerCount: this.props.viewerCount,
       endedAt: this.props.endedAt,
       createdAt: this.props.createdAt,

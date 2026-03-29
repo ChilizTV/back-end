@@ -19,6 +19,7 @@ export class SendMessageUseCase {
 
     const message = ChatMessage.create({
       matchId: dto.matchId,
+      streamId: dto.streamId,
       userId: dto.userId,
       walletAddress: dto.walletAddress,
       username: dto.username,

@@ -58,7 +58,7 @@ export class SupabaseStreamRepository implements IStreamRepository {
 
   async findActiveByMatchIds(matchIds: number[]): Promise<Stream[]> {
     if (matchIds.length === 0) return [];
-    const { data: rows, error } = await supabase.from('live_streams').select('*').eq('status', 'live').in('match_id', matchIds).order('viewer_count', { ascending: false });
+    const { data: rows, error } = await supabase.from('live_streams').select('*').in('status', ['live', 'created']).in('match_id', matchIds).order('viewer_count', { ascending: false });
     if (error) { logger.error('Failed to find active streams by match ids', { error: error.message }); throw new Error('Failed to find active streams by match ids'); }
     return rows ? rows.map(row => this.toDomain(row)) : [];
   }

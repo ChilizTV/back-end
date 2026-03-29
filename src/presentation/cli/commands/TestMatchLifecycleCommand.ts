@@ -11,7 +11,7 @@ import { logger } from '../../../infrastructure/logging/logger';
  */
 @injectable()
 export class TestMatchLifecycleCommand {
-    private readonly TEST_MATCH_ID = 999003;
+    private readonly TEST_MATCH_ID = 999001;
     private readonly DEFAULT_ODDS = {
         homeWin: 2.1,
         draw: 3.2,
@@ -58,19 +58,19 @@ export class TestMatchLifecycleCommand {
             id: this.TEST_MATCH_ID,
             apiFootballId: this.TEST_MATCH_ID,
             homeTeamId: 6,
-            homeTeamName: 'Bayern Munich',
+            homeTeamName: 'Real Madrid',
             homeTeamLogo: '',
             awayTeamId: 5,
-            awayTeamName: 'Dortmund',
+            awayTeamName: 'Barcelona',
             awayTeamLogo: '',
-            leagueId: 4,
-            leagueName: 'Bundesliga',
+            leagueId: 1,
+            leagueName: 'Liga',
             leagueLogo: '',
-            leagueCountry: 'Germany',
+            leagueCountry: 'España',
             season: new Date().getFullYear(),
             matchDate,
             status: 'NS',
-            venue: 'Allianz Arena',
+            venue: 'Santiago Bernabeu',
             odds: this.DEFAULT_ODDS,
         });
 

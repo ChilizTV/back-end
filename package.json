@@ -10,6 +10,7 @@
     "build": "tsc",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
+    "mediamtx": "mediamtx mediamtx.yml",
     "deploy:missing-contracts": "ts-node scripts/deploy-missing-betting-contracts.ts",
     "setup:markets": "ts-node scripts/setup-markets-for-existing-contracts.ts"
   },

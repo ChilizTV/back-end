@@ -65,10 +65,11 @@ export class ChatController {
   async sendMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const matchId = parseInt(req.params.matchId);
-      const { userId, walletAddress, username, message, isFeatured } = req.body;
+      const { userId, walletAddress, username, message, isFeatured, streamId } = req.body;
 
       const chatMessage = await this.sendMessageUseCase.execute({
         matchId,
+        streamId,
         userId,
         walletAddress,
         username,
@@ -115,9 +116,9 @@ export class ChatController {
   async getRoomMessages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const matchId = parseInt(req.params.matchId);
-      const { limit = 50, offset = 0 } = req.query;
+      const { limit = 50, offset = 0, streamId } = req.query;
 
-      const messages = await this.getRoomMessagesUseCase.execute(matchId, Number(limit), Number(offset));
+      const messages = await this.getRoomMessagesUseCase.execute(matchId, Number(limit), Number(offset), streamId as string | undefined);
 
       res.json({
         success: true,

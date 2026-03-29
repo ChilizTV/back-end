@@ -1,8 +1,8 @@
 import { injectable, inject } from 'tsyringe';
-import { ChatMessage, MessageType } from '../../../domain/chat/entities/ChatMessage';
-import { IChatRepository } from '../../../domain/chat/repositories/IChatRepository';
-import { SubscriptionChecker } from '../../../domain/chat/services/SubscriptionChecker';
-import { SendBetMessageDto } from '../dto/SendMessageDto';
+import { ChatMessage, MessageType } from '../../../domain/chat/entities';
+import { IChatRepository } from '../../../domain/chat/repositories';
+import { SubscriptionChecker } from '../../../domain/chat/services';
+import { SendBetMessageDto } from '../dto';
 
 @injectable()
 export class SendBetMessageUseCase {

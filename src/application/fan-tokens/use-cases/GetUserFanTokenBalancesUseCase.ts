@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IFanTokenRepository, UserTokenBalance } from '../../../domain/fan-tokens/repositories/IFanTokenRepository';
+import { IFanTokenRepository, UserTokenBalance } from '../../../domain/fan-tokens/repositories';
 import { logger } from '../../../infrastructure/logging';
 
 /**

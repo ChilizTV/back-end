@@ -1,5 +1,5 @@
 import { injectable, inject } from 'tsyringe';
-import { IWaitlistRepository, WaitlistStats } from '../../../domain/waitlist/repositories/IWaitlistRepository';
+import { IWaitlistRepository, WaitlistStats } from '../../../domain/waitlist/repositories';
 
 @injectable()
 export class GetWaitlistStatsUseCase {

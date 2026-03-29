@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { JoinWaitlistUseCase } from '../../../application/waitlist/use-cases/JoinWaitlistUseCase';
-import { CheckAccessUseCase } from '../../../application/waitlist/use-cases/CheckAccessUseCase';
-import { GetWaitlistStatsUseCase } from '../../../application/waitlist/use-cases/GetWaitlistStatsUseCase';
+import {
+  JoinWaitlistUseCase,
+  CheckAccessUseCase,
+  GetWaitlistStatsUseCase,
+} from '../../../application/waitlist/use-cases';
 
 @injectable()
 export class WaitlistController {

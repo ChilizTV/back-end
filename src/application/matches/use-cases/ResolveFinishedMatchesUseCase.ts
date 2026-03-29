@@ -1,6 +1,6 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { MatchResolutionAdapter } from '../../../infrastructure/blockchain/adapters/MatchResolutionAdapter';
+import { IMatchRepository } from '../../../domain/matches/repositories';
+import { MatchResolutionAdapter } from '../../../infrastructure/blockchain/adapters';
 import { logger } from '../../../infrastructure/logging/logger';
 
 export interface ResolveFinishedMatchesResult {

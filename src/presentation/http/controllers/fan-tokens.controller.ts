@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { GetUserFanTokenBalancesUseCase } from '../../../application/fan-tokens/use-cases/GetUserFanTokenBalancesUseCase';
+import { GetUserFanTokenBalancesUseCase } from '../../../application/fan-tokens/use-cases';
 
 /**
  * @notice Controller for fan token operations

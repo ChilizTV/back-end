@@ -1,11 +1,10 @@
 import { injectable, inject } from 'tsyringe';
-import { IMatchRepository } from '../../../domain/matches/repositories/IMatchRepository';
-import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
-import { FootballApiAdapter } from '../../../infrastructure/external/adapters/FootballApiAdapter';
-import { BettingContractDeploymentAdapter } from '../../../infrastructure/blockchain/adapters/BettingContractDeploymentAdapter';
-import { MarketOddsAdapter } from '../../../infrastructure/blockchain/adapters/MarketOddsAdapter';
-import { Match, MatchOdds } from '../../../domain/matches/entities/Match';
-import { ApiFootballOdds, ExtendedOdds } from '../../../infrastructure/external/types/ApiFootball.types';
+import { IMatchRepository } from '../../../domain/matches/repositories';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects';
+import { FootballApiAdapter } from '../../../infrastructure/external/adapters';
+import { BettingContractDeploymentAdapter, MarketOddsAdapter } from '../../../infrastructure/blockchain/adapters';
+import { Match, MatchOdds } from '../../../domain/matches/entities';
+import { ApiFootballOdds, ExtendedOdds } from '../../../infrastructure/external/types';
 import { logger } from '../../../infrastructure/logging/logger';
 
 export interface SyncMatchesResult {

@@ -1,10 +1,8 @@
 import { injectable } from 'tsyringe';
 import { supabaseClient as supabase } from '../../database/supabase/client';
-import { Prediction } from '../../../domain/predictions/entities/Prediction';
-import { IPredictionRepository, UserPredictionStats } from '../../../domain/predictions/repositories/IPredictionRepository';
-import { TransactionHash } from '../../../domain/predictions/value-objects/TransactionHash';
-import { Odds } from '../../../domain/predictions/value-objects/Odds';
-import { PredictionStatus } from '../../../domain/predictions/value-objects/PredictionStatus';
+import { Prediction } from '../../../domain/predictions/entities';
+import { IPredictionRepository, UserPredictionStats } from '../../../domain/predictions/repositories';
+import { TransactionHash, Odds, PredictionStatus } from '../../../domain/predictions/value-objects';
 import { logger } from '../../logging/logger';
 
 interface PredictionRow {

@@ -1,10 +1,8 @@
 import { injectable, inject } from 'tsyringe';
-import { Prediction } from '../../../domain/predictions/entities/Prediction';
-import { IPredictionRepository } from '../../../domain/predictions/repositories/IPredictionRepository';
-import { TransactionHash } from '../../../domain/predictions/value-objects/TransactionHash';
-import { Odds } from '../../../domain/predictions/value-objects/Odds';
-import { PredictionStatus } from '../../../domain/predictions/value-objects/PredictionStatus';
-import { CreatePredictionDto } from '../dto/CreatePredictionDto';
+import { Prediction } from '../../../domain/predictions/entities';
+import { IPredictionRepository } from '../../../domain/predictions/repositories';
+import { TransactionHash, Odds, PredictionStatus } from '../../../domain/predictions/value-objects';
+import { CreatePredictionDto } from '../dto';
 import { ConflictError } from '../../../domain/shared/errors/ConflictError';
 import { v4 as uuidv4 } from 'uuid';
 

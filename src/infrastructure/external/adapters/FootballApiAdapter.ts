@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
 import axios from 'axios';
-import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds } from '../types/ApiFootball.types';
-import { MatchFetchWindow } from '../../../domain/matches/value-objects/MatchFetchWindow';
+import { ApiFootballMatch, ApiFootballOdds, ExtendedOdds } from '../types';
+import { MatchFetchWindow } from '../../../domain/matches/value-objects';
 import { logger } from '../../logging/logger';
 
 /**

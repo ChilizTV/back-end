@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { GetStreamerDonationsUseCase } from '../../../application/stream-wallet/use-cases/GetStreamerDonationsUseCase';
-import { GetStreamerSubscriptionsUseCase } from '../../../application/stream-wallet/use-cases/GetStreamerSubscriptionsUseCase';
-import { GetStreamerStatsUseCase } from '../../../application/stream-wallet/use-cases/GetStreamerStatsUseCase';
-import { GetDonorHistoryUseCase } from '../../../application/stream-wallet/use-cases/GetDonorHistoryUseCase';
-import { GetSubscriberHistoryUseCase } from '../../../application/stream-wallet/use-cases/GetSubscriberHistoryUseCase';
+import {
+  GetStreamerDonationsUseCase,
+  GetStreamerSubscriptionsUseCase,
+  GetStreamerStatsUseCase,
+  GetDonorHistoryUseCase,
+  GetSubscriberHistoryUseCase,
+} from '../../../application/stream-wallet/use-cases';
 
 @injectable()
 export class StreamWalletController {

@@ -7,12 +7,13 @@ import { config } from 'dotenv';
 import { securityHeadersMiddleware, env, setupDependencyInjection, container } from './src/infrastructure/config';
 import { logger, requestLogger } from './src/infrastructure/logging';
 import { errorHandler, authenticate, globalLimiter, authLimiter, predictionsLimiter, chatLimiter } from './src/presentation/http/middlewares';
-import { JobScheduler, BlockchainEventListener } from './src/infrastructure/services';
 import { CleanupOldMatchesUseCase } from './src/application/matches/use-cases/CleanupOldMatchesUseCase';
 config();
 setupDependencyInjection();
 import { authRoutes, predictionRoutes, matchRoutes, chatRoutes, waitlistRoutes, streamRoutes, streamWalletRoutes, fanTokensRoutes, followRoutes } from './src/presentation/http/routes';
 import { mediamtxWebhookRoutes } from './src/presentation/http/routes/mediamtx-webhook.routes';
+import { JobScheduler } from './src/infrastructure/scheduling';
+import { BlockchainEventListener } from './src/infrastructure/blockchain';
 
 const app = express();
 const server = http.createServer(app);

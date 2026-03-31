@@ -92,7 +92,7 @@ import {
   StaleStreamCleanupJob,
   SettlePredictionsJob,
   ViewerReconcileJob,
-} from '../scheduling/jobs';
+} from '../scheduling';
 import { ViewerSessionService, StreamLifecycleService } from '../services';
 import {
   DeployMissingContractsCommand,
